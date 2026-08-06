@@ -1,0 +1,11 @@
+{
+  "site": {
+    "repo_name": "scaling-ai-systems",
+    "title": "Scaling AI Systems",
+    "tagline": "What breaks between the pilot and the ten-thousandth user.",
+    "base_url": "https://iggym.github.io/scaling-ai-systems/",
+    "audience": "Engineering leaders past MVP, hitting scale problems",
+    "description": "Case studies and cost anatomies for teams that cleared the proof-of-concept stage and are now finding out what only shows up at real scale."
+  },
+  "articles": []
+}

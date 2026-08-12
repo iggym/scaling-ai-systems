@@ -7,5 +7,18 @@
     "audience": "Engineering leaders past MVP, hitting scale problems",
     "description": "Case studies and cost anatomies for teams that cleared the proof-of-concept stage and are now finding out what only shows up at real scale."
   },
-  "articles": []
+  "articles": [{
+  "id": "2804",
+  "slug": "boundary-collapse-ai-org-design",
+  "title": "When Code Replaces Departments",
+  "hook": "Scaling AI isn't a model problem; it's a boundary problem. When an agent's output volume rivals a department, the wall between platform engineering and business operations collapses.",
+  "path": "articles/boundary-collapse-ai-org-design.html",
+  "date": "2024-03-12",
+  "status": "published",
+  "format": "case-study",
+  "tags": ["org-design", "ai-scaling", "cost-economics"],
+  "reading_time_minutes": 6,
+  "pinned": false,
+  "research_window": "Feb 13, 2024 - March 12, 2024"
+}]
 }

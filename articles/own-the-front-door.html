@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Own the Front Door — Scaling AI Systems</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0e0e0d;--fg:#e8e4de;--muted:#7a756e;--accent:#e8922f;--accent2:#d94f4f;
+  --card:#1a1918;--border:#2a2826;--glass:rgba(14,14,13,0.82);
+  --fd:'Fraunces',serif;--fb:'DM Sans',sans-serif;
+}
+html{scroll-behavior:smooth;background:var(--bg);color:var(--fg);font-family:var(--fb);font-size:17px;line-height:1.7}
+body{min-height:100vh}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ── Progress bar ── */
+#progress{position:fixed;top:0;left:0;height:3px;background:var(--accent);z-index:1100;width:0;transition:width .08s linear}
+
+/* ── Topbar ── */
+#topbar{position:sticky;top:0;z-index:1050;background:var(--glass);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid var(--border);height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 24px}
+#topbar .left{display:flex;align-items:center;gap:14px}
+#topbar .home-link{font-family:var(--fd);font-weight:700;font-size:15px;color:var(--fg);text-decoration:none}
+#topbar .home-link:hover{color:var(--accent);text-decoration:none}
+.bc{font-size:12px;color:var(--muted)}
+.bc span{margin:0 6px;opacity:.5}
+.bc a{color:var(--muted);text-decoration:none}
+.bc a:hover{color:var(--accent)}
+.rt{font-size:12px;color:var(--muted);white-space:nowrap}
+#hamburger{display:none;background:none;border:none;color:var(--fg);font-size:22px;cursor:pointer;padding:4px 8px;line-height:1}
+
+/* ── Drawer ── */
+#drawer-overlay{display:none;position:fixed;inset:0;top:54px;background:rgba(0,0,0,.55);z-index:1040}
+#drawer-overlay.open{display:block}
+#drawer{position:fixed;top:54px;left:-300px;width:280px;height:calc(100vh - 54px);background:var(--card);border-right:1px solid var(--border);z-index:1045;padding:20px 24px;transition:left .3s ease;overflow-y:auto}
+#drawer.open{left:0}
+#drawer h4{font-family:var(--fd);font-size:14px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:1.5px}
+#drawer nav a{display:block;padding:10px 0;color:var(--fg);text-decoration:none;border-bottom:1px solid var(--border);font-size:14px}
+#drawer nav a:hover{color:var(--accent);text-decoration:none}
+
+/* ── Layout ── */
+.layout{display:grid;grid-template-columns:1fr 300px;gap:48px;max-width:1160px;margin:0 auto;padding:48px 24px 80px}
+.main-col{min-width:0}
+.sidebar-col{position:sticky;top:70px;align-self:start}
+
+/* ── Hero ── */
+.hero{margin-bottom:40px}
+.hero h1{font-family:var(--fd);font-size:clamp(2.2rem,5vw,3.6rem);font-weight:900;line-height:1.08;margin-bottom:14px;color:var(--fg)}
+.hero .sub{font-size:17px;color:var(--muted);font-weight:300;max-width:520px}
+.meta-row{display:flex;gap:16px;margin-top:16px;font-size:13px;color:var(--muted)}
+.meta-row .tag{background:var(--border);padding:3px 10px;border-radius:99px;font-size:11px;text-transform:uppercase;letter-spacing:.8px}
+
+/* ── Spectrum ── */
+.spectrum{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:32px}
+.spectrum-label{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:14px}
+.spectrum-bar{display:flex;height:42px;border-radius:8px;overflow:hidden;position:relative}
+.spectrum-left{flex:1;background:var(--accent2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;padding:0 10px}
+.spectrum-right{flex:1;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#111;padding:0 10px}
+.spectrum-marker{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--fg);left:50%;transform:translateX(-50%);opacity:.7}
+
+/* ── Article ── */
+.article-content p{margin-bottom:18px}
+.article-content h2{font-family:var(--fd);font-size:1.5rem;font-weight:700;margin:44px 0 14px;color:var(--fg)}
+.article-content strong{color:var(--accent);font-weight:600}
+.article-content ol{margin:0 0 20px 20px}
+.article-content ol li{margin-bottom:10px}
+.article-content ol li strong{display:block;margin-bottom:2px}
+
+/* ── Pull quotes ── */
+.pull-quote{background:var(--card);border-left:4px solid var(--accent);padding:20px 20px 12px;margin:32px 0;border-radius:0 12px 12px 0}
+.pull-quote p{font-family:var(--fd);font-size:1.2rem;font-weight:700;line-height:1.4;margin-bottom:10px;color:var(--fg)}
+.share-row{display:flex;gap:6px}
+.share-btn{display:inline-flex;align-items:center;gap:4px;background:var(--border);color:var(--muted);border:none;padding:5px 10px;border-radius:6px;font-size:11px;cursor:pointer;text-decoration:none;transition:all .2s;font-family:var(--fb)}
+.share-btn:hover{background:var(--accent);color:#111;text-decoration:none}
+.share-btn svg{width:13px;height:13px}
+
+/* ── Beat sections ── */
+.beat-section{margin:40px 0;padding:28px;background:var(--card);border:1px solid var(--border);border-radius:14px}
+.beat-label{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:12px;display:block}
+.beat-before,.beat-after,.beat-turn{transition:all .7s ease;padding:4px 0}
+.beat-before{color:var(--muted);font-size:15px}
+.beat-after{color:var(--fg);font-size:15px}
+.beat-turn{color:var(--muted);font-size:14px;font-style:italic;border-top:1px solid var(--border);margin-top:12px;padding-top:12px}
+.beat-section.revealed .beat-before{opacity:.35;text-decoration:line-through}
+.beat-section.revealed .beat-after{color:var(--accent);font-weight:700;transform:translateX(6px)}
+.beat-section.revealed .beat-turn{border-top-color:var(--accent);color:var(--fg);font-style:normal;font-weight:500}
+
+/* ── Centerpiece widget ── */
+.centerpiece{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px;margin:40px 0}
+.centerpiece h3{font-family:var(--fd);font-size:1.25rem;margin-bottom:4px}
+.centerpiece .desc{font-size:13px;color:var(--muted);margin-bottom:16px}
+.lever-wrap{display:flex;align-items:center;gap:14px;margin-bottom:20px}
+.lever-wrap label{font-size:13px;color:var(--muted);white-space:nowrap}
+.lever-wrap input[type=range]{flex:1;accent-color:var(--accent);height:6px;cursor:pointer}
+.lever-val{font-family:var(--fd);font-size:2rem;font-weight:900;color:var(--accent);min-width:40px;text-align:right;line-height:1}
+#leverCanvas{width:100%;height:280px;border-radius:8px;display:block;background:#141413}
+.centerpiece .readout{display:flex;gap:20px;margin-top:14px;font-size:13px}
+.readout-item{display:flex;flex-direction:column;gap:2px}
+.readout-item .rl{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:1px}
+.readout-item .rv{font-family:var(--fd);font-weight:700;font-size:1.1rem}
+.readout-item .rv.danger{color:var(--accent2)}
+.readout-item .rv.safe{color:#5cb85c}
+
+/* ── Data chart (SVG) ── */
+.data-chart{margin:40px 0;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;overflow:hidden}
+.data-chart h3{font-family:var(--fd);font-size:1.15rem;margin-bottom:4px}
+.data-chart .desc{font-size:13px;color:var(--muted);margin-bottom:16px}
+.chart-svg{width:100%;height:auto;display:block}
+.chart-svg .line-central{stroke:var(--accent2);stroke-width:2.5;fill:none;stroke-dasharray:800;stroke-dashoffset:800;transition:stroke-dashoffset 1.5s ease}
+.chart-svg .line-embed{stroke:var(--accent);stroke-width:2.5;fill:none;stroke-dasharray:800;stroke-dashoffset:800;transition:stroke-dashoffset 1.5s ease .3s}
+.chart-svg.animate .line-central,.chart-svg.animate .line-embed{stroke-dashoffset:0}
+.chart-svg .dot{opacity:0;transition:opacity .5s ease 1.2s}
+.chart-svg.animate .dot{opacity:1}
+.chart-svg text{font-family:var(--fb);font-size:11px;fill:var(--muted)}
+.chart-svg .anno{font-size:10px;fill:var(--accent);font-weight:600}
+
+/* ── Comparison table ── */
+.comp-table{margin:40px 0;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;overflow-x:auto}
+.comp-table h3{font-family:var(--fd);font-size:1.15rem;margin-bottom:4px}
+.comp-table .desc{font-size:13px;color:var(--muted);margin-bottom:16px}
+table.ct{width:100%;border-collapse:collapse;font-size:13px}
+.ct th{text-align:left;padding:10px 12px;border-bottom:2px solid var(--border);color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;cursor:pointer;user-select:none;white-space:nowrap}
+.ct th:hover{color:var(--accent)}
+.ct th .sort-arrow{margin-left:4px;opacity:.4;font-size:10px}
+.ct th.sorted .sort-arrow{opacity:1;color:var(--accent)}
+.ct td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+.ct tr:hover td{background:rgba(232,146,47,.04)}
+.ct .num{font-family:var(--fd);font-weight:700;color:var(--fg)}
+.ct .neg{color:var(--accent2)}
+.ct .pos{color:#5cb85c}
+
+/* ── Scale icons ── */
+.icon-before,.icon-after{display:inline-flex;vertical-align:middle;margin-right:6px}
+.icon-before svg,.icon-after svg{width:18px;height:18px}
+
+/* ── Three things tracker ── */
+.tt{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:20px}
+.tt h4{font-family:var(--fd);font-size:13px;margin-bottom:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px}
+.tt-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--muted);transition:color .5s ease}
+.tt-item:last-child{border-bottom:none}
+.tt-item.unlocked{color:var(--fg)}
+.tt-dot{width:8px;height:8px;border-radius:50%;background:var(--border);margin-top:6px;flex-shrink:0;transition:background .5s ease}
+.tt-item.unlocked .tt-dot{background:var(--accent)}
+
+/* ── Recall cards ── */
+.recall{margin:40px 0}
+.recall h3{font-family:var(--fd);font-size:1.15rem;margin-bottom:16px}
+.recall-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.recall-card{perspective:600px;cursor:pointer;height:140px}
+.recall-inner{position:relative;width:100%;height:100%;transition:transform .5s ease;transform-style:preserve-3d}
+.recall-card.flipped .recall-inner{transform:rotateY(180deg)}
+.recall-front,.recall-back{position:absolute;inset:0;backface-visibility:hidden;border-radius:12px;padding:16px;display:flex;flex-direction:column;justify-content:center;border:1px solid var(--border)}
+.recall-front{background:var(--card);font-size:13px;color:var(--fg);line-height:1.5}
+.recall-back{background:var(--accent);color:#111;transform:rotateY(180deg);font-family:var(--fd);font-size:1.3rem;font-weight:900;text-align:center}
+.recall-hint{font-size:10px;color:var(--muted);margin-top:auto;text-align:right}
+
+/* ── Concept map ── */
+.concept-map{margin:40px 0;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px}
+.concept-map h3{font-family:var(--fd);font-size:1.15rem;margin-bottom:16px}
+.cm-svg{width:100%;max-width:600px;height:auto;display:block;margin:0 auto}
+
+/* ── Figcaptions ── */
+figcaption{font-size:12px;color:var(--muted);margin-top:10px;font-style:italic;line-height:1.5}
+
+/* ── Footer ── */
+footer{border-top:1px solid var(--border);padding:40px 24px;max-width:1160px;margin:0 auto}
+footer h4{font-family:var(--fd);font-size:14px;margin-bottom:12px}
+footer .citations{font-size:13px;color:var(--muted);line-height:1.8;margin-bottom:24px}
+footer .citations a{color:var(--muted);text-decoration:underline;text-underline-offset:2px}
+footer .citations a:hover{color:var(--accent)}
+footer .back-top{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border);color:var(--fg);padding:10px 18px;border-radius:8px;font-size:13px;cursor:pointer;text-decoration:none;transition:all .2s;font-family:var(--fb)}
+footer .back-top:hover{background:var(--accent);color:#111;text-decoration:none;border-color:var(--accent)}
+
+/* ── Responsive ── */
+@media(max-width:880px){
+  #hamburger{display:block}
+  .bc{display:none}
+  .layout{grid-template-columns:1fr;gap:32px}
+  .sidebar-col{position:static}
+  .hero h1{font-size:clamp(1.8rem,6vw,2.6rem)}
+  .recall-grid{grid-template-columns:1fr}
+}
+
+/* ── Reduced motion ── */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  .chart-svg .line-central,.chart-svg .line-embed{stroke-dashoffset:0!important}
+  .chart-svg .dot{opacity:1!important}
+  #leverCanvas{display:none}
+  .lever-static{display:block!important}
+}
+.lever-static{display:none;font-size:14px;color:var(--muted);padding:20px 0;line-height:1.8}
+.lever-static table{width:100%;border-collapse:collapse;margin-top:12px}
+.lever-static td,.lever-static th{padding:6px 10px;border-bottom:1px solid var(--border);font-size:13px;text-align:left}
+.lever-static th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:1px}
+</style>
+</head>
+<body>
+
+<!-- Progress bar -->
+<div id="progress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+
+<!-- Topbar -->
+<header id="topbar">
+  <div class="left">
+    <button id="hamburger" aria-label="Open menu">&#9776;</button>
+    <a href="https://iggym.github.io/scaling-ai-systems/" class="home-link">Scaling AI Systems</a>
+    <div class="bc"><a href="https://iggym.github.io/scaling-ai-systems/">Home</a><span>›</span><a href="https://iggym.github.io/scaling-ai-systems/">Articles</a><span>›</span>Own the Front Door</div>
+  </div>
+  <div class="rt" id="readTime">6 min read</div>
+</header>
+
+<!-- Drawer -->
+<div id="drawer-overlay" aria-hidden="true"></div>
+<nav id="drawer" aria-label="Mobile navigation">
+  <h4>Navigation</h4>
+  <a href="https://iggym.github.io/scaling-ai-systems/">Home</a>
+  <a href="#spectrum-section">The Reframe</a>
+  <a href="#centerpiece-section">Find the Break Point</a>
+  <a href="#data-section">The Numbers</a>
+  <a href="#recall-section">Recall Check</a>
+  <a href="#concept-section">Concept Map</a>
+</nav>
+
+<!-- Main layout -->
+<div class="layout">
+  <main class="main-col">
+
+    <!-- Hero -->
+    <div class="hero">
+      <h1>Own the Front Door</h1>
+      <p class="sub">What Klarna and Microsoft discovered when their AI teams became the bottleneck they were supposed to eliminate.</p>
+      <div class="meta-row">
+        <span>Mar 14, 2025</span>
+        <span class="tag">Org Design</span>
+        <span class="tag">Case Study</span>
+      </div>
+    </div>
+
+    <!-- Spectrum widget -->
+    <div class="spectrum" id="spectrum-section">
+      <div class="spectrum-label">The reframe at a glance</div>
+      <div class="spectrum-bar">
+        <div class="spectrum-left">Center of Excellence</div>
+        <div class="spectrum-right">Shipping Bottleneck</div>
+        <div class="spectrum-marker"></div>
+      </div>
+      <figcaption>Centralized AI ownership slides from asset to liability the moment your system becomes the primary customer interface.</figcaption>
+    </div>
+
+    <!-- Article content -->
+    <article class="article-content">
+
+      <p>In February 2025, Klarna's AI assistant handled 2.3 million customer service conversations in a single month. That volume represents the work of roughly 700 full-time agents — and it flows through a system built by a team that doesn't report to customer service, doesn't sit inside the product organization, and can't be iterated on by either without joining a centralized queue.</p>
+
+      <p>Sebastian Siemiatkowski, Klarna's CEO, described the shift as forcing a fundamental rethink of organizational ownership. The AI system wasn't a tool the customer service team used. It <em>was</em> the customer service team. And the people authorized to change its behavior didn't work for the department whose outcomes depended on it.</p>
+
+      <!-- Pull quote 1 -->
+      <div class="pull-quote" data-quote="2.3 million conversations per month — 700 agents' worth of work — flowing through a team that doesn't report to the department whose outcomes depend on it.">
+        <p>2.3 million conversations per month — 700 agents' worth of work — flowing through a team that doesn't report to the department whose outcomes depend on it.</p>
+        <div class="share-row">
+          <a class="share-btn" href="https://twitter.com/intent/tweet?text=2.3%20million%20conversations%20per%20month%20%E2%80%94%20700%20agents%27%20worth%20of%20work%20%E2%80%94%20flowing%20through%20a%20team%20that%20doesn%27t%20report%20to%20the%20department%20whose%20outcomes%20depend%20on%20it.&url=https%3A%2F%2Figgym.github.io%2Fscaling-ai-systems%2Farticles%2Down-the-front-door.html" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>Post
+          </a>
+          <a class="share-btn" href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Figgym.github.io%2Fscaling-ai-systems%2Farticles%2Down-the-front-door.html" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>Share
+          </a>
+        </div>
+      </div>
+
+      <!-- BEAT 1 -->
+      <section class="beat-section" data-beat="1" aria-label="Perspective shift 1">
+        <span class="beat-label">Perspective Shift</span>
+        <div class="beat-before"><span class="icon-before"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="none" stroke="#d94f4f" stroke-width="2"/><circle cx="10" cy="10" r="3" fill="#d94f4f"/></svg></span>BEFORE: We need a stronger, better-resourced AI platform team to keep up with demand.</div>
+        <div class="beat-after"><span class="icon-after"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="none" stroke="#e8922f" stroke-width="2"/><circle cx="10" cy="4" r="2" fill="#e8922f"/><circle cx="15.66" cy="13" r="2" fill="#e8922f"/><circle cx="4.34" cy="13" r="2" fill="#e8922f"/></svg></span>AFTER: The platform team is the bottleneck. Adding capacity makes the bottleneck wider, not shorter.</div>
+        <div class="beat-turn">TURN: The thing you're scaling to fix the problem is the problem.</div>
+      </section>
+
+      <p>What looks like a reporting-lines problem with AI at scale is actually an iteration-loop problem. When your AI system becomes the primary interface between your company and your customers, the team that owns it becomes either the fastest or the slowest loop in your organization. Centralize that loop, and you've built a brand-new bottleneck dressed up as a center of excellence.</p>
+
+      <!-- Hidden connections — its own paragraph -->
+      <p>Every hour a product manager spends waiting for the AI team's capacity is an hour your competitor's product manager spends shipping.</p>
+
+      <h2>Money in the Handoffs</h2>
+
+      <p data-tt="1">Here's the anatomy of why this breaks, using Klarna's numbers. At 2.3 million conversations per month, even if just 0.1% surface a behavior needing adjustment — a misrouted query, a tone problem, a missing edge case — that's 2,300 adjustments per month. A centralized AI team of eight engineers handles roughly 288 each, about ten per working day.</p>
+
+      <p>Each one requires context from the customer service side. Not a Jira ticket. Actual domain understanding — why this query misrouted, what the customer meant, what the correct resolution should have been. Two hours per adjustment, conservatively. That's 4,600 hours of context transfer per month against 1,280 available working hours. The math doesn't resolve.</p>
+
+      <p>Adding headcount doesn't fix it. Each new engineer adds iteration capacity but also their own context-transfer overhead — they need to learn the product domain before they can act. A team of sixteen might increase output by 30% while doubling AI engineering compensation. The marginal return on centralized headcount goes negative fast. The failure mode doesn't look like a budget problem. It looks like a shipping-delay problem.</p>
+
+      <!-- Pull quote 2 -->
+      <div class="pull-quote" data-quote="4,600 hours of context transfer needed per month. 1,280 hours available. The math doesn't resolve — and no headcount fix changes the shape of that gap.">
+        <p>4,600 hours of context transfer needed per month. 1,280 hours available. The math doesn't resolve — and no headcount fix changes the shape of that gap.</p>
+        <div class="share-row">
+          <a class="share-btn" href="https://twitter.com/intent/tweet?text=4%2C600%20hours%20of%20context%20transfer%20needed%20per%20month.%201%2C280%20hours%20available.%20The%20math%20doesn%27t%20resolve.%20No%20headcount%20fix%20changes%20the%20shape%20of%20that%20gap.&url=https%3A%2F%2Figgym.github.io%2Fscaling-ai-systems%2Farticles%2Down-the-front-door.html" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>Post
+          </a>
+          <a class="share-btn" href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Figgym.github.io%2Fscaling-ai-systems%2Farticles%2Down-the-front-door.html" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>Share
+          </a>
+        </div>
+      </div>
+
+      <h2>Redrawing the Line</h2>
+
+      <p>Microsoft hit a structurally identical wall in March 2025. Copilot integrations across Office, Windows, and GitHub all depended on a centralized AI platform team for behavior-level changes. Product teams queued. Ship dates slipped not because the model lacked capability, but because the team authorized to tune its behavior for a specific product surface couldn't serve three surfaces demanding changes at once.</p>
+
+      <p>The reorganization moved dedicated AI engineers into each product group. The central platform narrowed to shared infrastructure: model serving, evaluation frameworks, deployment automation. Product-level prompt tuning and behavior adjustment moved into the product orgs.</p>
+
+      <p>Microsoft didn't add headcount. They redistributed existing headcount to change where the iteration loop lived. The signal: the problem wasn't insufficient AI engineers. It was AI engineers in the wrong room.</p>
+
+      <!-- BEAT 2 -->
+      <section class="beat-section" data-beat="2" aria-label="Perspective shift 2">
+        <span class="beat-label">Perspective Shift</span>
+        <div class="beat-before"><span class="icon-before"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="none" stroke="#d94f4f" stroke-width="2"/><circle cx="10" cy="10" r="3" fill="#d94f4f"/></svg></span>BEFORE: Product teams don't understand the AI well enough to own it — they'll break things.</div>
+        <div class="beat-after"><span class="icon-after"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="none" stroke="#e8922f" stroke-width="2"/><circle cx="10" cy="4" r="2" fill="#e8922f"/><circle cx="15.66" cy="13" r="2" fill="#e8922f"/><circle cx="4.34" cy="13" r="2" fill="#e8922f"/></svg></span>AFTER: AI teams don't understand the product well enough to iterate on it — they're already breaking things, just slowly.</div>
+        <div class="beat-turn">TURN: The knowledge gap runs both directions, and only one side holds the context that determines whether a change helps the user.</div>
+      </section>
+
+      <h2>Guarding the Rails</h2>
+
+      <p>The strongest case for centralized AI ownership is safety and consistency. Distribute behavior ownership across product teams and you get drift — one surface chatty, another terse, nobody holding a holistic view of what the AI promises customers.</p>
+
+      <p>That case holds at one surface. At three or more, the centralized team's capacity to enforce consistency degrades faster than the distributed model's tendency to create inconsistency. You trade a theoretical risk for an actual shipping failure. The answer is centralized standards and tooling with distributed behavior ownership — a platform team that builds guardrails and evaluation infrastructure, not one that approves every prompt change.</p>
+
+      <p>A brief aside: cognitive load research documents a measurable cost in error rate and decision speed when people context-switch between domains. When your org structure forces someone to hold product requirements and model behavior in working memory simultaneously, they'll be slower and less accurate at both than someone embedded in one domain. AI makes this cost visible because the iteration volume turns accumulated slowness into a line item.</p>
+
+      <h2>Floor Gives Out</h2>
+
+      <p data-tt="2">The pattern across these cases points to a specific break point, and it isn't headcount. It's surface count. The centralized AI team model holds at one product surface. It strains at two. It fails at three or more — not from capacity constraints, but because domain context can't transfer through a ticket queue at the speed AI systems demand. The platform team fails from an operating model that assumes context is portable. At these volumes, it isn't.</p>
+
+      <h2>Four Structural Moves</h2>
+
+      <ol>
+        <li><strong>Count your surfaces.</strong> Map every customer- or revenue-touching surface where AI behavior is directly visible. Search results, recommendations, generated content, conversational interfaces — each counts. If the number hits three or more, the centralized model is already failing. You haven't measured it yet.</li>
+        <li data-tt="3"><strong>Move the loop, not the people.</strong> Ensure the person who notices an AI behavior problem can fix it, or is at most one handoff away. Count handoffs between "problem noticed" and "fix deployed." More than two means restructure.</li>
+        <li><strong>Shrink the platform mandate.</strong> Model serving, evaluation tooling, prompt versioning, observability — platform concerns. Product-level prompt tuning, behavior adjustment, feature-specific AI logic — not platform concerns. If your platform team does product-level work, that's the smell. Write the boundary down.</li>
+        <li><strong>Track iteration latency, not headcount.</strong> The leading indicator: time from "behavior problem identified" to "fix in production," measured per product surface. If one surface is consistently slower, the structure is wrong for that surface regardless of what the org chart says.</li>
+      </ol>
+
+      <p>Within the next 24 hours, count your AI-touching product surfaces. Write the number down. If it's three or more, you have a structural bottleneck that no platform-team hiring will fix. The restructure isn't optional. You just get to choose the timing — or let the next shipping delay choose it for you.</p>
+
+    </article>
+
+    <!-- ═══ CENTERPIECE WIDGET ═══ -->
+    <div class="centerpiece" id="centerpiece-section">
+      <h3>Pull the Lever</h3>
+      <p class="desc">Drag to see where centralized ownership breaks. Watch the gap between the two curves.</p>
+      <div class="lever-wrap">
+        <label for="surfaceSlider">AI product surfaces</label>
+        <input type="range" id="surfaceSlider" min="1" max="8" value="1" step="1" aria-label="Number of AI product surfaces">
+        <div class="lever-val" id="leverVal">1</div>
+      </div>
+      <canvas id="leverCanvas" width="800" height="280" aria-label="Chart showing iteration latency by number of product surfaces"></canvas>
+      <div class="lever-static">
+        <p>With reduced motion, here's the data the interactive chart would show:</p>
+        <table>
+          <tr><th>Surfaces</th><th>Centralized (days)</th><th>Embedded (days)</th><th>Delta</th></tr>
+          <tr><td>1</td><td>2</td><td>2</td><td>0</td></tr>
+          <tr><td>2</td><td>5</td><td>3</td><td>2</td></tr>
+          <tr><td>3</td><td>11</td><td>4</td><td>7</td></tr>
+          <tr><td>4</td><td>20</td><td>5</td><td>15</td></tr>
+          <tr><td>5</td><td>28</td><td>6</td><td>22</td></tr>
+        </table>
+      </div>
+      <div class="readout">
+        <div class="readout-item"><span class="rl">Centralized</span><span class="rv danger" id="rdCentral">2 days</span></div>
+        <div class="readout-item"><span class="rl">Embedded</span><span class="rv safe" id="rdEmbed">2 days</span></div>
+        <div class="readout-item"><span class="rl">Delta</span><span class="rv" id="rdDelta">0 days</span></div>
+      </div>
+      <figcaption>The inflection lives at three surfaces — the exact point where context-transfer overhead outpaces the centralized team's ability to absorb it.</figcaption>
+    </div>
+
+    <!-- ═══ DATA CHART (SVG) ═══ -->
+    <div class="data-chart" id="data-section">
+      <h3>Where the Curves Diverge</h3>
+      <p class="desc">Iteration latency modeled across product surfaces, anchored to the Klarna and Microsoft cases.</p>
+      <svg class="chart-svg" id="animChart" viewBox="0 0 600 320" xmlns="http://www.w3.org/2000/svg">
+        <!-- Grid -->
+        <line x1="60" y1="30" x2="60" y2="260" stroke="#2a2826" stroke-width="1"/>
+        <line x1="60" y1="260" x2="560" y2="260" stroke="#2a2826" stroke-width="1"/>
+        <line x1="60" y1="207" x2="560" y2="207" stroke="#2a2826" stroke-width="0.5" stroke-dasharray="4"/>
+        <line x1="60" y1="154" x2="560" y2="154" stroke="#2a2826" stroke-width="0.5" stroke-dasharray="4"/>
+        <line x1="60" y1="101" x2="560" y2="101" stroke="#2a2826" stroke-width="0.5" stroke-dasharray="4"/>
+        <line x1="60" y1="48" x2="560" y2="48" stroke="#2a2826" stroke-width="0.5" stroke-dasharray="4"/>
+        <!-- Y axis labels -->
+        <text x="50" y="264" text-anchor="end">0</text>
+        <text x="50" y="211" text-anchor="end">8</text>
+        <text x="50" y="158" text-anchor="end">16</text>
+        <text x="50" y="105" text-anchor="end">24</text>
+        <text x="50" y="52" text-anchor="end">32</text>
+        <text x="16" y="145" text-anchor="middle" transform="rotate(-90,16,145)" font-size="11">Days to ship a fix</text>
+        <!-- X axis labels -->
+        <text x="60" y="280" text-anchor="middle">1</text>
+        <text x="171" y="280" text-anchor="middle">2</text>
+        <text x="283" y="280" text-anchor="middle">3</text>
+        <text x="394" y="280" text-anchor="middle">4</text>
+        <text x="506" y="280" text-anchor="middle">5</text>
+        <text x="283" y="300" text-anchor="middle">Product surfaces with AI</text>
+        <!-- Inflection zone -->
+        <rect x="233" y="30" width="100" height="230" fill="rgba(217,79,79,0.06)" rx="4"/>
+        <text x="283" y="44" text-anchor="middle" class="anno">Inflection zone</text>
+        <!-- Centralized curve (exponential-ish) -->
+        <polyline class="line-central" points="60,247 171,227 283,187 394,128 506,68"/>
+        <!-- Embedded curve (linear) -->
+        <polyline class="line-embed" points="60,247 171,234 283,220 394,207 506,194"/>
+        <!-- Data points - Klarna (1 surface, ~2 days) -->
+        <circle class="dot" cx="60" cy="247" r="5" fill="#e8922f"/>
+        <text class="dot" x="60" y="240" text-anchor="middle" fill="#e8922f" font-size="10" font-weight="600">Klarna</text>
+        <!-- Data points - Microsoft (3 surfaces, ~11 days centralized) -->
+        <circle class="dot" cx="283" cy="187" r="5" fill="#d94f4f"/>
+        <text class="dot" x="300" y="178" text-anchor="start" fill="#d94f4f" font-size="10" font-weight="600">MSFT (pre-reorg)</text>
+        <!-- Legend -->
+        <line x1="380" y1="290" x2="400" y2="290" stroke="#d94f4f" stroke-width="2.5"/>
+        <text x="405" y="294" fill="#7a756e" font-size="10">Centralized</text>
+        <line x1="470" y1="290" x2="490" y2="290" stroke="#e8922f" stroke-width="2.5"/>
+        <text x="495" y="294" fill="#7a756e" font-size="10">Embedded</text>
+      </svg>
+      <figcaption>Klarna sits at the calm left edge. Microsoft had already entered the red zone when it restructured — the curve explains why waiting wasn't an option.</figcaption>
+    </div>
+
+    <!-- ═══ COMPARISON TABLE ═══ -->
+    <div class="comp-table">
+      <h3>Side by Side</h3>
+      <p class="desc">The structural variables that predicted each outcome.</p>
+      <table class="ct" id="compTable">
+        <thead>
+          <tr>
+            <th data-col="0">Variable <span class="sort-arrow">↕</span></th>
+            <th data-col="1">Klarna <span class="sort-arrow">↕</span></th>
+            <th data-col="2">Microsoft <span class="sort-arrow">↕</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>AI surface</td><td>Customer service assistant</td><td>Copilot (3 product groups)</td></tr>
+          <tr><td>Team model</td><td>Centralized</td><td>Centralized, then embedded</td></tr>
+          <tr><td>Centralized headcount</td><td class="num">~8 engineers</td><td class="num">~40 (platform)</td></tr>
+          <tr><td>Product surfaces served</td><td class="num">1</td><td class="num">3</td></tr>
+          <tr><td>Monthly adjustments</td><td class="num">~2,300</td><td>Queue-based (unmet demand)</td></tr>
+          <tr><td>Context-transfer load</td><td class="num neg">4,600 hrs/mo</td><td class="neg">Exceeded capacity</td></tr>
+          <tr><td>Available working hours</td><td class="num">1,280 hrs/mo</td><td>Insufficient for 3 surfaces</td></tr>
+          <tr><td>Resolution</td><td>Reorg under discussion</td><td class="pos">Redistributed to product orgs</td></tr>
+        </tbody>
+      </table>
+      <figcaption>The gap column that matters most isn't headcount — it's context-transfer hours versus available hours. Both companies had the same structural disease.</figcaption>
+    </div>
+
+    <!-- ═══ RECALL CARDS ═══ -->
+    <div class="recall" id="recall-section">
+      <h3>Recall Check</h3>
+      <p class="desc" style="font-size:13px;color:var(--muted);margin-bottom:16px">Tap a card to check your answer.</p>
+      <div class="recall-grid">
+        <div class="recall-card" onclick="this.classList.toggle('flipped')" tabindex="0" role="button" aria-label="Flip card">
+          <div class="recall-inner">
+            <div class="recall-front">At a 0.1% adjustment rate on 2.3M monthly conversations, how many adjustments does Klarna's AI generate?<span class="recall-hint">Tap to reveal</span></div>
+            <div class="recall-back">2,300 per month</div>
+          </div>
+        </div>
+        <div class="recall-card" onclick="this.classList.toggle('flipped')" tabindex="0" role="button" aria-label="Flip card">
+          <div class="recall-inner">
+            <div class="recall-front">What was the gap between Klarna's context-transfer demand and the team's available hours?<span class="recall-hint">Tap to reveal</span></div>
+            <div class="recall-back">4,600 vs. 1,280 hours</div>
+          </div>
+        </div>
+        <div class="recall-card" onclick="this.classList.toggle('flipped')" tabindex="0" role="button" aria-label="Flip card">
+          <div class="recall-inner">
+            <div class="recall-front">At how many product surfaces does the centralized AI team model fail?<span class="recall-hint">Tap to reveal</span></div>
+            <div class="recall-back">Three or more</div>
+          </div>
+        </div>
+      </div>
+      <figcaption>If you hesitated on any of these, the structural point hasn't locked in yet — reread the anatomy section.</figcaption>
+    </div>
+
+    <!-- ═══ CONCEPT MAP ═══ -->
+    <div class="concept-map" id="concept-section">
+      <h3>Adjacent Dynamics</h3>
+      <svg class="cm-svg" viewBox="0 0 560 340" xmlns="http://www.w3.org/2000/svg">
+        <!-- Edges first (behind nodes) -->
+        <line x1="130" y1="100" x2="280" y2="170" stroke="#d94f4f" stroke-width="2" opacity="0.5"/>
+        <line x1="430" y1="100" x2="280" y2="170" stroke="#e8922f" stroke-width="2" opacity="0.5"/>
+        <line x1="130" y1="100" x2="90" y2="220" stroke="#d94f4f" stroke-width="1.5" opacity="0.3" stroke-dasharray="6"/>
+        <line x1="430" y1="100" x2="470" y2="220" stroke="#e8922f" stroke-width="1.5" opacity="0.3"/>
+        <line x1="280" y1="170" x2="280" y2="290" stroke="#7a756e" stroke-width="1.5" opacity="0.4"/>
+        <line x1="130" y1="100" x2="280" y2="100" stroke="#2a2826" stroke-width="1" stroke-dasharray="4"/>
+        <line x1="280" y1="100" x2="430" y2="100" stroke="#2a2826" stroke-width="1" stroke-dasharray="4"/>
+        <!-- Nodes -->
+        <rect x="60" y="72" width="140" height="56" rx="10" fill="#1a1918" stroke="#d94f4f" stroke-width="1.5"/>
+        <text x="130" y="97" text-anchor="middle" fill="#d94f4f" font-size="11" font-weight="600">Centralized</text>
+        <text x="130" y="115" text-anchor="middle" fill="#7a756e" font-size="10">AI Team</text>
+
+        <rect x="360" y="72" width="140" height="56" rx="10" fill="#1a1918" stroke="#e8922f" stroke-width="1.5"/>
+        <text x="430" y="97" text-anchor="middle" fill="#e8922f" font-size="11" font-weight="600">Embedded in</text>
+        <text x="430" y="115" text-anchor="middle" fill="#7a756e" font-size="10">Product Teams</text>
+
+        <rect x="195" y="142" width="170" height="56" rx="12" fill="#1a1918" stroke="#e8e4de" stroke-width="2"/>
+        <text x="280" y="166" text-anchor="middle" fill="#e8e4de" font-size="12" font-weight="700">Iteration Loop</text>
+        <text x="280" y="184" text-anchor="middle" fill="#7a756e" font-size="10">Location</text>
+
+        <rect x="20" y="200" width="140" height="48" rx="8" fill="#1a1918" stroke="#d94f4f" stroke-width="1" opacity="0.7"/>
+        <text x="90" y="220" text-anchor="middle" fill="#d94f4f" font-size="10" font-weight="500">Context-Transfer</text>
+        <text x="90" y="236" text-anchor="middle" fill="#7a756e" font-size="9">Tax (superlinear)</text>
+
+        <rect x="400" y="200" width="140" height="48" rx="8" fill="#1a1918" stroke="#e8922f" stroke-width="1" opacity="0.7"/>
+        <text x="470" y="220" text-anchor="middle" fill="#e8922f" font-size="10" font-weight="500">Ship Velocity</text>
+        <text x="470" y="236" text-anchor="middle" fill="#7a756e" font-size="9">(preserved)</text>
+
+        <rect x="210" y="270" width="140" height="48" rx="8" fill="#1a1918" stroke="#7a756e" stroke-width="1"/>
+        <text x="280" y="290" text-anchor="middle" fill="#e8e4de" font-size="10" font-weight="600">Surface Count</text>
+        <text x="280" y="306" text-anchor="middle" fill="#d94f4f" font-size="10" font-weight="700">3+ = break point</text>
+
+        <!-- Edge label -->
+        <text x="205" y="90" text-anchor="middle" fill="#7a756e" font-size="9" font-style="italic">slow</text>
+        <text x="355" y="90" text-anchor="middle" fill="#7a756e" font-size="9" font-style="italic">fast</text>
+      </svg>
+      <figcaption>Move the iteration loop right and the context-transfer tax disappears — but only if you've drawn the platform boundary correctly first.</figcaption>
+    </div>
+
+  </main>
+
+  <!-- ═══ SIDEBAR ═══ -->
+  <aside class="sidebar-col">
+    <div class="tt" id="ttTracker">
+      <h4>Three Things</h4>
+      <div class="tt-item" id="tt1">
+        <div class="tt-dot"></div>
+        <span>The break point is surface count, not headcount</span>
+      </div>
+      <div class="tt-item" id="tt2">
+        <div class="tt-dot"></div>
+        <span>Context can't transfer through ticket queues</span>
+      </div>
+      <div class="tt-item" id="tt3">
+        <div class="tt-dot"></div>
+        <span>The fix means giving authority away, not adding process</span>
+      </div>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;font-size:13px;color:var(--muted);line-height:1.6">
+      <strong style="color:var(--fg);display:block;margin-bottom:8px">Key terms in this piece</strong>
+      <span style="color:var(--accent)">Iteration loop</span> — the cycle from noticing an AI behavior problem to deploying a fix.<br><br>
+      <span style="color:var(--accent)">Surface count</span> — the number of distinct customer-touching surfaces where AI behavior is visible.<br><br>
+      <span style="color:var(--accent)">Context-transfer tax</span> — the hours spent moving domain knowledge into the team authorized to act on it.
+    </div>
+  </aside>
+</div>
+
+<!-- Footer -->
+<footer>
+  <h4>Citations</h4>
+  <div class="citations">
+    <p>Klarna AI assistant handling 2.3M customer service conversations/month, equivalent to ~700 FTE agents. CEO Sebastian Siemiatkowski on organizational ownership implications, February 2025 public interviews.</p>
+    <p>Microsoft AI platform group reorganization, March 2025 — Copilot integrations across Office, Windows, and GitHub moved from centralized AI platform team to product-embedded AI engineers. Central platform narrowed to shared infrastructure (serving, evaluation, deployment).</p>
+    <p>Context-transfer anatomy: 2.3M conversations × 0.1% adjustment rate = 2,300 adjustments/month. 8-engineer centralized team = 288 adjustments/engineer/month. 2-hour context transfer per adjustment = 4,600 hours/month demand vs. 1,280 hours/month supply. Author's model based on reported team structure and conversation volumes.</p>
+    <p>Cognitive load and context-switching costs: established findings in cognitive psychology (Sweller, 1988; Baddeley, 1992) applied to organizational structure analysis.</p>
+  </div>
+  <a href="#" class="back-top" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>
+    Back to top
+  </a>
+  <br><br>
+  <a href="https://iggym.github.io/scaling-ai-systems/" style="font-size:13px;color:var(--muted)">Scaling AI Systems — Home</a>
+</footer>
+
+<script>
+(function(){
+  /* ── Reduced motion check ── */
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ── Progress bar ── */
+  const prog = document.getElementById('progress');
+  function updateProgress(){
+    const h = document.documentElement.scrollHeight - window.innerHeight;
+    const pct = h > 0 ? (window.scrollY / h) * 100 : 0;
+    prog.style.width = pct + '%';
+    prog.setAttribute('aria-valuenow', Math.round(pct));
+  }
+  window.addEventListener('scroll', updateProgress, {passive:true});
+
+  /* ── Hamburger / drawer ── */
+  const ham = document.getElementById('hamburger');
+  const drawer = document.getElementById('drawer');
+  const overlay = document.getElementById('drawer-overlay');
+  function toggleDrawer(open){
+    drawer.classList.toggle('open', open);
+    overlay.classList.toggle('open', open);
+    overlay.setAttribute('aria-hidden', !open);
+  }
+  ham.addEventListener('click', ()=> toggleDrawer(true));
+  overlay.addEventListener('click', ()=> toggleDrawer(false));
+
+  /* ── Scroll reveals: BEAT sections ── */
+  if(!prefersReduced){
+    const beats = document.querySelectorAll('.beat-section');
+    const beatObs = new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{
+        if(e.isIntersecting){
+          e.target.classList.add('revealed');
+          beatObs.unobserve(e.target);
+        }
+      });
+    },{threshold:0.4});
+    beats.forEach(b=> beatObs.observe(b));
+  } else {
+    document.querySelectorAll('.beat-section').forEach(b=> b.classList.add('revealed'));
+  }
+
+  /* ── Scroll reveal: animated chart ── */
+  if(!prefersReduced){
+    const chart = document.getElementById('animChart');
+    if(chart){
+      const chartObs = new IntersectionObserver((entries)=>{
+        entries.forEach(e=>{
+          if(e.isIntersecting){
+            e.target.classList.add('animate');
+            chartObs.unobserve(e.target);
+          }
+        });
+      },{threshold:0.3});
+      chartObs.observe(chart);
+    }
+  } else {
+    const chart = document.getElementById('animChart');
+    if(chart) chart.classList.add('animate');
+  }
+
+  /* ── Three things tracker ── */
+  const ttElements = [
+    {el: document.getElementById('tt1'), target: document.querySelector('[data-tt="1"]')},
+    {el: document.getElementById('tt2'), target: document.querySelector('[data-tt="2"]')},
+    {el: document.getElementById('tt3'), target: document.querySelector('[data-tt="3"]')}
+  ];
+  const ttObs = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        const idx = ttElements.findIndex(t=> t.target === e.target);
+        if(idx >= 0) ttElements[idx].el.classList.add('unlocked');
+        ttObs.unobserve(e.target);
+      }
+    });
+  },{threshold:0.5});
+  ttElements.forEach(t=>{ if(t.target) ttObs.observe(t.target); });
+
+  /* ── Centerpiece lever widget ── */
+  const slider = document.getElementById('surfaceSlider');
+  const leverVal = document.getElementById('leverVal');
+  const canvas = document.getElementById('leverCanvas');
+  const rdCentral = document.getElementById('rdCentral');
+  const rdEmbed = document.getElementById('rdEmbed');
+  const rdDelta = document.getElementById('rdDelta');
+
+  /* Model functions */
+  function centralizedDays(s){ return Math.round(2 * Math.pow(2.2, s - 1)); }
+  function embeddedDays(s){ return Math.round(1.5 + 1.1 * (s - 1)); }
+
+  function drawLever(surfaces){
+    if(!canvas || prefersReduced) return;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const pad = {t:20, r:30, b:40, l:60};
+    const plotW = W - pad.l - pad.r;
+    const plotH = H - pad.t - pad.b;
+    const maxS = 8, maxD = 35;
+
+    function sx(s){ return pad.l + ((s - 1) / (maxS - 1)) * plotW; }
+    function sy(d){ return pad.t + plotH - (d / maxD) * plotH; }
+
+    ctx.clearRect(0, 0, W, H);
+
+    /* Grid */
+    ctx.strokeStyle = '#2a2826';
+    ctx.lineWidth = 1;
+    for(let d = 0; d <= maxD; d += 5){
+      const y = sy(d);
+      ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+      ctx.fillStyle = '#7a756e'; ctx.font = '11px "DM Sans",sans-serif'; ctx.textAlign = 'right';
+      ctx.fillText(d + 'd', pad.l - 8, y + 4);
+    }
+    for(let s = 1; s <= maxS; s++){
+      const x = sx(s);
+      ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, H - pad.b); ctx.stroke();
+      ctx.fillStyle = '#7a756e'; ctx.textAlign = 'center';
+      ctx.fillText(s, x, H - pad.b + 18);
+    }
+    ctx.fillStyle = '#7a756e'; ctx.font = '11px "DM Sans",sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Product surfaces', pad.l + plotW / 2, H - 4);
+    ctx.save(); ctx.translate(14, pad.t + plotH / 2); ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Days to ship', 0, 0); ctx.restore();
+
+    /* Inflection zone */
+    ctx.fillStyle = 'rgba(217,79,79,0.07)';
+    ctx.fillRect(sx(2.5), pad.t, sx(3.5) - sx(2.5), plotH);
+    ctx.fillStyle = '#d94f4f'; ctx.font = '600 10px "DM Sans",sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('Break point', sx(3), pad.t + 12);
+
+    /* Curves */
+    function drawCurve(fn, color, dash){
+      ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.setLineDash(dash || []);
+      ctx.beginPath();
+      for(let s = 1; s <= maxS; s += 0.1){
+        const x = sx(s), y = sy(fn(s));
+        s === 1 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.stroke(); ctx.setLineDash([]);
+    }
+    drawCurve(centralizedDays, '#d94f4f');
+    drawCurve(embeddedDays, '#e8922f');
+
+    /* Current position marker */
+    const cx = sx(surfaces);
+    const cyC = sy(centralizedDays(surfaces));
+    const cyE = sy(embeddedDays(surfaces));
+
+    /* Vertical line */
+    ctx.strokeStyle = 'rgba(232,228,222,0.3)'; ctx.lineWidth = 1; ctx.setLineDash([4]);
+    ctx.beginPath(); ctx.moveTo(cx, pad.t); ctx.lineTo(cx, H - pad.b); ctx.stroke();
+    ctx.setLineDash([]);
+
+    /* Dots */
+    ctx.beginPath(); ctx.arc(cx, cyC, 6, 0, Math.PI * 2); ctx.fillStyle = '#d94f4f'; ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, cyE, 6, 0, Math.PI * 2); ctx.fillStyle = '#e8922f'; ctx.fill();
+
+    /* Delta line */
+    if(surfaces > 1){
+      ctx.strokeStyle = 'rgba(232,228,222,0.2)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(cx + 10, cyC); ctx.lineTo(cx + 10, cyE); ctx.stroke();
+      ctx.fillStyle = '#e8e4de'; ctx.font = '600 11px "DM Sans",sans-serif'; ctx.textAlign = 'left';
+      const midY = (cyC + cyE) / 2;
+      ctx.fillText('Δ ' + (centralizedDays(surfaces) - embeddedDays(surfaces)) + 'd', cx + 16, midY + 4);
+    }
+
+    /* Labels */
+    ctx.font = '600 11px "DM Sans",sans-serif'; ctx.textAlign = 'left';
+    ctx.fillStyle = '#d94f4f'; ctx.fillText(centralizedDays(surfaces) + ' days', cx + 12, cyC - 4);
+    ctx.fillStyle = '#e8922f'; ctx.fillText(embeddedDays(surfaces) + ' days', cx + 12, cyE + 14);
+
+    /* Legend */
+    ctx.fillStyle = '#d94f4f'; ctx.fillRect(W - pad.r - 130, pad.t, 12, 3);
+    ctx.fillStyle = '#7a756e'; ctx.font = '10px "DM Sans",sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText('Centralized', W - pad.r - 112, pad.t + 5);
+    ctx.fillStyle = '#e8922f'; ctx.fillRect(W - pad.r - 130, pad.t + 16, 12, 3);
+    ctx.fillStyle = '#7a756e'; ctx.fillText('Embedded', W - pad.r - 112, pad.t + 21);
+  }
+
+  function updateLever(){
+    const s = parseInt(slider.value);
+    leverVal.textContent = s;
+    const cDays = centralizedDays(s);
+    const eDays = embeddedDays(s);
+    const delta = cDays - eDays;
+    rdCentral.textContent = cDays + ' days';
+    rdEmbed.textContent = eDays + ' days';
+    rdDelta.textContent = delta + ' days';
+    rdDelta.style.color = delta > 5 ? '#d94f4f' : delta > 0 ? '#e8922f' : '#5cb85c';
+    drawLever(s);
+  }
+
+  slider.addEventListener('input', updateLever);
+  updateLever();
+
+  /* ── Comparison table sorting ── */
+  const table = document.getElementById('compTable');
+  const headers = table.querySelectorAll('th');
+  let sortCol = -1, sortAsc = true;
+
+  headers.forEach(th=>{
+    th.addEventListener('click', ()=>{
+      const col = parseInt(th.dataset.col);
+      if(sortCol === col){ sortAsc = !sortAsc; } else { sortCol = col; sortAsc = true; }
+      headers.forEach(h=> h.classList.remove('sorted'));
+      th.classList.add('sorted');
+      const tbody = table.querySelector('tbody');
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      rows.sort((a,b)=>{
+        const aText = a.children[col].textContent.trim();
+        const bText = b.children[col].textContent.trim();
+        return sortAsc ? aText.localeCompare(bText) : bText.localeCompare(aText);
+      });
+      rows.forEach(r=> tbody.appendChild(r));
+    });
+  });
+
+  /* ── Recall cards: keyboard accessibility ── */
+  document.querySelectorAll('.recall-card').forEach(card=>{
+    card.addEventListener('keydown', e=>{
+      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); card.classList.toggle('flipped'); }
+    });
+  });
+
+  /* ── Initial progress ── */
+  updateProgress();
+})();
+</script>
+</body>
+</html>

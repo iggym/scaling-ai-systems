@@ -85,5 +85,49 @@
   "reading_time_minutes": 6,
   "pinned": false,
   "research_window": "2026-04-15 to 2026-05-20"
+},{
+  "id": "0027",
+  "slug": "own-the-front-door",
+  "title": "Own the Front Door",
+  "hook": "Centralizing AI ownership creates a bottleneck, not a center of excellence — the iteration loop needs to live where domain context lives.",
+  "path": "articles/own-the-front-door.html",
+  "date": "2025-03-14",
+  "status": "published",
+  "format": "case-study",
+  "tags": ["org-design", "ai-teams", "iteration-latency", "platform-vs-embedded"],
+  "reading_time_minutes": 6,
+  "pinned": false,
+  "research_window": "Feb 7, 2025 – Mar 14, 2025 (W=5 draw)"
+},{
+  "id": "4829",
+  "slug": "the-hostage-architecture",
+  "title": "The Hostage Architecture",
+  "hook": "Vendor lock-in in AI extends far beyond data-egress fees; it functions as a subsidized unit-economics trap and a cognitive-calcification crisis.",
+  "path": "articles/the-hostage-architecture.html",
+  "date": "2026-04-17",
+  "status": "published",
+  "format": "case-study",
+  "tags": ["vendor-lock-in", "ai-infrastructure", "unit-economics"],
+  "reading_time_minutes": 7,
+  "pinned": false,
+  "research_window": "2026-03-13 to 2026-04-17"
+},{
+  "id": "3048",
+  "slug": "cheap-tokens-massive-bills",
+  "title": "Cheap Tokens, Massive Bills",
+  "hook": "Dropping unit token prices do not reduce your cloud bill; they lower the barrier for product teams to introduce context payloads and autonomous multi-turn loops that multiply token volume exponentially.",
+  "path": "articles/cheap-tokens-massive-bills.html",
+  "date": "2026-03-25",
+  "status": "published",
+  "format": "case-study",
+  "tags": [
+    "inference-economics",
+    "jevons-paradox",
+    "llm-scaling",
+    "architecture"
+  ],
+  "reading_time_minutes": 6,
+  "pinned": false,
+  "research_window": "2026-02-11 through 2026-03-25"
 }]
 }

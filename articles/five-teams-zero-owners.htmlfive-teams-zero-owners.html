@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Five Teams, Zero Owners — Scaling AI Systems</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Source+Sans+3:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#090B0E;--bg-card:#10131A;--fg:#9E9B95;--fg-muted:#686A73;
+  --accent:#B84A25;--accent2:#009070;--border:#2E313B;
+  --s1:#B84A25;--s2:#CC8A30;--s3:#009070;--s4:#38A89A;--s5:#7DBFA0;
+  --topbar-h:52px;--sidebar-w:280px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;background:var(--bg);color:var(--fg);font-family:'Source Sans 3',sans-serif;font-size:17px;line-height:1.75}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+h1,h2,h3,.hero-title{font-family:'Instrument Serif',serif;font-weight:400}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+
+#progress{position:fixed;top:0;left:0;height:3px;background:var(--accent);width:0%;z-index:1001;transition:width .1s linear}
+@media(prefers-reduced-motion:reduce){#progress{transition:none}}
+
+#topbar{position:fixed;top:0;left:0;right:0;height:var(--topbar-h);z-index:1000;
+  background:rgba(9,11,14,.82);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:16px}
+#topbar .home{color:var(--fg);font-weight:600;font-size:.9rem;white-space:nowrap}
+#topbar .home:hover{color:var(--accent);text-decoration:none}
+#topbar .breadcrumb{color:var(--fg-muted);font-size:.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+#topbar .read-time{color:var(--fg-muted);font-size:.82rem;white-space:nowrap}
+#hamburger{display:none;background:none;border:1px solid var(--border);color:var(--fg);font-size:1.3rem;
+  width:36px;height:36px;border-radius:6px;cursor:pointer;line-height:1}
+@media(max-width:880px){#hamburger{display:flex;align-items:center;justify-content:center}#topbar .breadcrumb{display:none}}
+
+#drawer{position:fixed;top:var(--topbar-h);right:-300px;width:280px;height:calc(100vh - var(--topbar-h));
+  background:var(--bg-card);border-left:1px solid var(--border);z-index:999;padding:20px;
+  transition:right .3s ease;display:flex;flex-direction:column;gap:12px}
+#drawer.open{right:0}
+@media(prefers-reduced-motion:reduce){#drawer{transition:none}}
+#drawer a,#drawer span{color:var(--fg-muted);font-size:.9rem}
+#drawer a:hover{color:var(--accent)}
+#drawer-overlay{display:none;position:fixed;inset:0;top:var(--topbar-h);background:rgba(0,0,0,.6);z-index:998}
+#drawer-overlay.open{display:block}
+
+.layout{display:grid;grid-template-columns:1fr var(--sidebar-w);gap:40px;max-width:1200px;
+  margin:0 auto;padding:calc(var(--topbar-h) + 32px) 20px 60px}
+@media(max-width:880px){.layout{grid-template-columns:1fr;gap:0}}
+
+.hero{margin-bottom:40px}
+.hero-title{font-size:clamp(2rem,5.5vw,3.6rem);line-height:1.1;color:var(--fg);letter-spacing:-.01em}
+.hero-date{color:var(--fg-muted);font-size:.88rem;margin-top:12px}
+
+.spectrum-section{margin:32px 0 40px;padding:28px 24px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;position:relative;overflow:hidden}
+.spectrum-bar{height:6px;border-radius:3px;margin-bottom:18px;
+  background:linear-gradient(90deg,var(--s1) 0%,var(--s1) 20%,var(--s2) 20%,var(--s2) 40%,var(--s3) 40%,var(--s3) 60%,var(--s4) 60%,var(--s4) 80%,var(--s5) 80%,var(--s5) 100%)}
+.reframe-text{font-family:'Instrument Serif',serif;font-size:clamp(1.15rem,2.5vw,1.5rem);line-height:1.4;color:var(--fg)}
+
+.pull-quote{margin:36px 0;padding:24px 28px;border-left:3px solid var(--accent);background:rgba(184,74,37,.08);border-radius:0 8px 8px 0;position:relative}
+.pull-quote p{font-family:'Instrument Serif',serif;font-size:1.2rem;line-height:1.45;color:var(--fg);margin:0 0 12px}
+.pull-quote .share-row{display:flex;gap:8px}
+.pull-quote .share-btn{display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:4px;
+  font-size:.75rem;font-weight:600;border:1px solid var(--border);background:var(--bg);color:var(--fg-muted);cursor:pointer;transition:background .2s,color .2s}
+.pull-quote .share-btn:hover{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+@media(prefers-reduced-motion:reduce){.pull-quote .share-btn{transition:none}}
+
+.beat-section{margin:44px 0;padding:28px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.beat-before,.beat-after,.beat-turn{padding:12px 16px;border-radius:6px;margin-bottom:8px;font-size:.95rem;line-height:1.55}
+.beat-before{background:rgba(104,106,115,.08);color:var(--fg-muted);border-left:3px solid var(--fg-muted)}
+.beat-after{opacity:0;transform:translateY(12px);transition:opacity .5s ease,transform .5s ease;
+  background:rgba(0,144,112,.1);color:var(--accent2);border-left:3px solid var(--accent2)}
+.beat-turn{opacity:0;transform:translateY(12px);transition:opacity .5s ease .15s,transform .5s ease .15s;
+  color:var(--accent);font-weight:700;border-left:3px solid var(--accent)}
+.beat-section.revealed .beat-after,.beat-section.revealed .beat-turn{opacity:1;transform:translateY(0)}
+.beat-section.revealed .beat-before{text-decoration:line-through;opacity:.4}
+@media(prefers-reduced-motion:reduce){
+  .beat-after,.beat-turn{opacity:1;transform:none;transition:none}
+  .beat-section.revealed .beat-before{text-decoration:line-through;opacity:.4}
+}
+
+.icon-before,.icon-after{display:inline-flex;vertical-align:middle;margin-right:6px}
+.icon-before svg,.icon-after svg{width:22px;height:22px}
+
+.widget-section{margin:48px 0;padding:28px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px}
+.widget-section h2{font-family:'Instrument Serif',serif;font-size:1.4rem;margin-bottom:20px;color:var(--fg)}
+.widget-controls{display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+.widget-controls label{font-size:.92rem;color:var(--fg-muted)}
+.widget-controls .team-num{color:var(--accent);font-weight:700;font-size:1.3rem}
+#team-slider{-webkit-appearance:none;appearance:none;width:260px;max-width:100%;height:6px;
+  background:var(--border);border-radius:3px;outline:none;cursor:pointer}
+#team-slider::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;
+  background:var(--accent);border:2px solid var(--bg);cursor:grab;box-shadow:0 0 10px rgba(184,74,37,.5)}
+#team-slider::-moz-range-thumb{width:22px;height:22px;border-radius:50%;
+  background:var(--accent);border:2px solid var(--bg);cursor:grab}
+#team-slider:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+.cost-svg{width:100%;max-width:520px;display:block;margin:0 auto}
+.cost-svg text{fill:var(--fg-muted);font-size:11px;font-family:'Source Sans 3',sans-serif}
+.cost-svg .axis-line{stroke:var(--border);stroke-width:1}
+.cost-svg .grid-line{stroke:var(--border);stroke-width:.6;stroke-dasharray:4 4}
+.cost-svg .compute-line{stroke:var(--accent2);stroke-width:2.5;fill:none}
+.cost-svg .coord-line{stroke:var(--accent);stroke-width:2.5;fill:none}
+.cost-svg .total-line{stroke:var(--fg);stroke-width:2;fill:none;stroke-dasharray:6 3}
+.cost-svg .inflection-dot{fill:var(--accent)}
+.cost-svg .inflection-label{fill:var(--accent);font-size:10px;font-weight:700}
+.cost-svg .legend-dot{r:4}
+.widget-note{margin-top:14px;font-size:.85rem;color:var(--fg-muted);text-align:center}
+
+.bar-chart-section{margin:48px 0;padding:28px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px}
+.bar-chart-section h2{font-family:'Instrument Serif',serif;font-size:1.3rem;margin-bottom:24px;color:var(--fg)}
+.bar-row{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.bar-label{width:150px;flex-shrink:0;font-size:.85rem;color:var(--fg-muted);text-align:right}
+.bar-track{flex:1;height:36px;background:rgba(46,49,59,.8);border-radius:6px;overflow:hidden;position:relative}
+.bar-fill{height:100%;border-radius:6px;width:0%;transition:width 1.2s ease}
+@media(prefers-reduced-motion:reduce){.bar-fill{transition:none;width:var(--target-w)}}
+.bar-fill.labor{background:linear-gradient(90deg,#923D1D,var(--s2))}
+.bar-fill.compute{background:linear-gradient(90deg,#00735A,var(--s4))}
+.bar-fill.coord{background:linear-gradient(90deg,#8B2A20,#A83228)}
+.bar-value{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:.8rem;font-weight:700;color:var(--bg);text-shadow:0 1px 3px rgba(0,0,0,.3);white-space:nowrap}
+.bar-annotation{font-size:.85rem;color:var(--accent);margin-top:8px;font-style:italic;opacity:0;transition:opacity .8s ease .6s}
+.bar-chart-section.revealed .bar-annotation{opacity:1}
+@media(prefers-reduced-motion:reduce){.bar-annotation{opacity:1;transition:none}}
+
+.table-section{margin:48px 0;padding:28px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow-x:auto}
+.table-section h2{font-family:'Instrument Serif',serif;font-size:1.3rem;margin-bottom:20px;color:var(--fg)}
+.comp-table{width:100%;border-collapse:collapse;font-size:.88rem}
+.comp-table th{text-align:left;padding:10px 14px;border-bottom:2px solid var(--border);color:var(--fg-muted);
+  font-weight:600;cursor:pointer;user-select:none;white-space:nowrap}
+.comp-table th:hover{color:var(--accent)}
+.comp-table th .sort-arrow{margin-left:4px;font-size:.7rem;opacity:.5}
+.comp-table th.sorted .sort-arrow{opacity:1;color:var(--accent)}
+.comp-table td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--fg)}
+.comp-table tr:hover td{background:rgba(184,74,37,.06)}
+.comp-table .dynamic-name{color:var(--accent);font-weight:600;font-style:italic}
+
+.concept-section{margin:48px 0;padding:28px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px}
+.concept-section h2{font-family:'Instrument Serif',serif;font-size:1.3rem;margin-bottom:20px;color:var(--fg)}
+.concept-svg{width:100%;max-width:560px;display:block;margin:0 auto}
+.concept-svg text{fill:var(--fg);font-family:'Source Sans 3',sans-serif}
+.concept-svg .node-rect{fill:var(--bg-card);stroke:var(--border);stroke-width:1.8;rx:6}
+.concept-svg .center-rect{fill:rgba(184,74,37,.12);stroke:var(--accent);stroke-width:2.5;rx:6}
+.concept-svg .edge{stroke:var(--border);stroke-width:1.4;fill:none}
+.concept-svg .edge-label{fill:var(--fg-muted);font-size:9.5px}
+
+.recall-section{margin:48px 0;padding:28px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px}
+.recall-section h2{font-family:'Instrument Serif',serif;font-size:1.3rem;margin-bottom:6px;color:var(--fg)}
+.recall-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:16px}
+.recall-card{perspective:600px;cursor:pointer;height:110px}
+.recall-card-inner{position:relative;width:100%;height:100%;transition:transform .5s ease;transform-style:preserve-3d}
+.recall-card.flipped .recall-card-inner{transform:rotateY(180deg)}
+@media(prefers-reduced-motion:reduce){.recall-card-inner{transition:none}.recall-card.flipped .recall-card-inner{transform:rotateY(180deg)}}
+.recall-front,.recall-back{position:absolute;inset:0;backface-visibility:hidden;border-radius:8px;padding:14px;
+  display:flex;align-items:center;justify-content:center;text-align:center;font-size:.88rem;line-height:1.4}
+.recall-front{background:var(--bg);border:1px solid var(--border);color:var(--fg)}
+.recall-back{background:rgba(0,144,112,.12);border:1px solid var(--accent2);color:var(--accent2);transform:rotateY(180deg);font-weight:700}
+.recall-hint{position:absolute;bottom:6px;right:8px;font-size:.65rem;color:var(--fg-muted)}
+
+#things-tracker{position:fixed;bottom:20px;right:20px;z-index:900;display:flex;flex-direction:column;gap:6px}
+@media(max-width:880px){#things-tracker{bottom:12px;right:12px}}
+.thing{display:flex;align-items:center;gap:8px;padding:6px 12px;background:rgba(16,19,26,.92);
+  backdrop-filter:blur(10px);border:1px solid var(--border);border-radius:20px;font-size:.75rem;
+  color:var(--fg-muted);opacity:.35;transition:opacity .4s ease,border-color .4s ease}
+.thing.unlocked{opacity:1;border-color:var(--accent);color:var(--fg)}
+@media(prefers-reduced-motion:reduce){.thing{transition:none}}
+.thing-num{width:20px;height:20px;border-radius:50%;background:var(--border);display:flex;align-items:center;
+  justify-content:center;font-size:.65rem;font-weight:700;flex-shrink:0;color:var(--fg-muted)}
+.thing.unlocked .thing-num{background:var(--accent);color:var(--bg)}
+
+.sidebar{position:sticky;top:calc(var(--topbar-h) + 20px);align-self:start}
+@media(max-width:880px){.sidebar{display:none}}
+.sidebar-card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:20px}
+.sidebar-card h3{font-family:'Instrument Serif',serif;font-size:1.05rem;margin-bottom:14px;color:var(--fg)}
+.fig-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:.88rem}
+.fig-row:last-child{border-bottom:none}
+.fig-label{color:var(--fg-muted)}.fig-val{color:var(--fg);font-weight:700}
+.icon-legend{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:.85rem;color:var(--fg-muted)}
+.icon-legend svg{width:20px;height:20px;flex-shrink:0}
+
+article p{margin-bottom:18px}
+article strong{color:var(--fg);font-weight:700}
+article .framework-item{margin:24px 0;padding:20px 22px;background:rgba(184,74,37,.06);border-left:3px solid var(--accent);border-radius:0 8px 8px 0}
+article .framework-item strong{display:block;font-family:'Instrument Serif',serif;font-size:1.1rem;margin-bottom:6px;color:var(--fg)}
+article .aside-note{color:var(--fg-muted);font-size:.9rem;font-style:italic}
+article .cta-final{margin:32px 0;padding:22px 26px;background:rgba(0,144,112,.08);border:1px solid var(--accent2);border-radius:10px;font-size:1rem;line-height:1.65;color:var(--fg)}
+
+figcaption{font-size:.82rem;color:var(--fg-muted);margin-top:12px;text-align:center;font-style:italic}
+
+footer{max-width:1200px;margin:0 auto;padding:40px 20px 60px;border-top:1px solid var(--border)}
+footer h3{font-family:'Instrument Serif',serif;font-size:1.1rem;margin-bottom:14px;color:var(--fg)}
+.citations{font-size:.85rem;color:var(--fg-muted);line-height:1.75;margin-bottom:24px}
+.citations li{margin-bottom:8px}
+#scroll-top{background:var(--bg-card);border:1px solid var(--border);color:var(--fg);padding:8px 18px;
+  border-radius:6px;cursor:pointer;font-size:.85rem;margin-bottom:16px;transition:background .2s}
+#scroll-top:hover{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+@media(prefers-reduced-motion:reduce){#scroll-top{transition:none}}
+.footer-home{font-size:.85rem;color:var(--fg-muted)}
+.footer-home a{color:var(--fg-muted)}
+.footer-home a:hover{color:var(--accent)}
+
+.scroll-mark{display:none}
+</style>
+</head>
+<body>
+
+<div id="progress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+
+<header id="topbar">
+  <a href="https://iggym.github.io/scaling-ai-systems/" class="home">Scaling AI Systems</a>
+  <span class="breadcrumb">/ Articles / Five Teams, Zero Owners</span>
+  <span class="read-time">6 min read</span>
+  <button id="hamburger" aria-label="Open menu" aria-expanded="false">&#9776;</button>
+</header>
+
+<div id="drawer-overlay" aria-hidden="true"></div>
+<nav id="drawer" aria-label="Mobile navigation">
+  <a href="https://iggym.github.io/scaling-ai-systems/">Home</a>
+  <span style="color:var(--fg-muted);font-size:.82rem">Articles</span>
+  <span style="color:var(--fg);font-size:.9rem;font-weight:600">Five Teams, Zero Owners</span>
+</nav>
+
+<div id="things-tracker" aria-label="Reading insights tracker">
+  <div class="thing" data-thing="1"><span class="thing-num">1</span><span>Ownership fracture</span></div>
+  <div class="thing" data-thing="2"><span class="thing-num">2</span><span>Coordination tax</span></div>
+  <div class="thing" data-thing="3"><span class="thing-num">3</span><span>Oscillation symptom</span></div>
+</div>
+
+<div class="layout">
+  <main>
+
+    <section class="hero">
+      <h1 class="hero-title">Five Teams, Zero Owners</h1>
+      <p class="hero-date">March 14, 2025</p>
+    </section>
+
+    <section class="spectrum-section" aria-label="Core argument">
+      <div class="spectrum-bar"></div>
+      <p class="reframe-text">Your org chart assumes one owner per system. Agents have five.</p>
+    </section>
+
+    <article>
+      <p>In February 2025, Sebastian Siemiatkowski posted that Klarna's AI assistant was handling 2.3 million conversations a month—work equivalent to 700 full-time agents. The number that should have scared him wasn't the 700. It was the five.</p>
+
+      <p>Five distinct internal teams who all had a legitimate claim to own that system. Not one of them could fix it end-to-end when something went wrong. Customer service operated it but didn't build it. Engineering owned the integration layer; the conversation flows belonged to no one. Compliance held veto power over prompt changes without the ability to author them. Product set the roadmap but had no control over model behavior. And data fed the training pipeline—while prompt logic sat in a gap between all five.</p>
+
+      <p>If the AI told a customer their refund was processed when it wasn't, which team filed the incident? Customer service saw the complaint first. Engineering could reproduce the model output. Compliance had a regulatory concern about incorrect financial information. Product owned the feature that triggered the interaction. Data might have caused it through a pipeline change the week before. Five teams. One bug. No single owner with enough context to triage it without a cross-team meeting.</p>
+
+      <span class="scroll-mark" data-thing="1"></span>
+
+      <blockquote class="pull-quote" aria-label="Shareable quote">
+        <p>Five teams. One bug. No single owner with enough context to triage it without a cross-team meeting.</p>
+        <div class="share-row">
+          <button class="share-btn" data-platform="x" data-quote="Five teams. One bug. No single owner with enough context to triage it without a cross-team meeting." aria-label="Share to X">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            X
+          </button>
+          <button class="share-btn" data-platform="li" data-quote="Five teams. One bug. No single owner with enough context to triage it without a cross-team meeting." aria-label="Share to LinkedIn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+            LinkedIn
+          </button>
+        </div>
+      </blockquote>
+
+      <p>Klarna isn't an anomaly. It's a preview of the problem that hits every organization once their AI system crosses from pilot into real traffic.</p>
+
+      <p><strong>Your org chart assumes one owner per system. Agents have five.</strong></p>
+
+      <p>That's the fracture. The organizational structure wrapped around a system that doesn't fit inside any single box on the chart.</p>
+
+      <section class="beat-section" aria-label="Perspective shift one">
+        <div class="beat-before">BEFORE: Every system in your stack has a clear owning team. That's how you've shipped software for a decade.</div>
+        <div class="beat-after">AFTER: Your AI system has five teams with legitimate claims and no written contract between any of them.</div>
+        <div class="beat-turn">TURN: Ownership is the wrong abstraction. Interfaces are the right one.</div>
+      </section>
+
+      <p>An AI agent handling customer conversations lives at the intersection of five organizational domains simultaneously. Your org chart has one box for each domain and no box for the intersection. When a system's span of concerns exceeds any single team's mandate, the organization doesn't fail to find an owner—it finds too many, and none of them is wrong about having a claim.</p>
+
+      <p>Microsoft hit a different edge of the same problem in March 2024. The company created a "Microsoft AI" division under Mustafa Suleyman, absorbing core talent from Inflection AI—Karen Simonyan as chief scientist, plus key researchers and engineers from the Inflection arrangement. The stated intent: a dedicated organization for AI with crisp ownership boundaries. The structural effect: a new horizontal layer inserted between established product groups—Microsoft 365, GitHub, Dynamics—and the model capabilities those groups depended on.</p>
+
+      <p>A Microsoft 365 team wanting to ship a new Copilot feature faced a constraint that didn't exist six months earlier. The product team owned the user-facing experience and the customer use case. Microsoft AI owned the model integration and the inference behavior. Both had to align on scope, timeline, and what "done" meant. If the feature underperformed in production—say, the Copilot response drifted off-topic in a specific scenario—was that a product design issue or a model behavior issue? The product team could argue the prompt template needed adjustment. Microsoft AI could argue the model routing was sound and the product team's context window was misconfigured. Both positions had merit. Neither team could unilaterally diagnose, fix, or ship the resolution.</p>
+
+      <span class="scroll-mark" data-thing="2"></span>
+
+      <p>That's the <em>layered ownership conflict</em>. A horizontal AI layer doesn't clarify who owns what. It creates ambiguous ownership at every integration point because both the layer and the product team hold a valid claim—and operate under different roadmaps, different success metrics, and different incentive structures.</p>
+
+      <p>The strongest counterargument is that a centralized AI team prevents inconsistent model usage and duplicated engineering across product groups. That cost—building the same RAG pipeline twice, using different models with different safety profiles—is real and visible in an architecture review. Klarna's case demonstrates the opposite failure mode. Centralization creates a single coordination bottleneck. Teams closest to a customer problem can't iterate without routing through it. The cost of inconsistency appears in a design review. The cost of coordination appears in cycle time—which you notice three months later, in a missed roadmap commit, with no clear line item to blame.</p>
+
+      <p class="aside-note">(Every organization I've worked with on this problem spends three to six months in the reorganization before someone points out that the org chart wasn't the variable that mattered. That's not neuroscience—that's written-in-retros terms, and it repeats.)</p>
+
+      <blockquote class="pull-quote" aria-label="Shareable quote">
+        <p>The model got cheaper. The organization got more expensive.</p>
+        <div class="share-row">
+          <button class="share-btn" data-platform="x" data-quote="The model got cheaper. The organization got more expensive." aria-label="Share to X">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            X
+          </button>
+          <button class="share-btn" data-platform="li" data-quote="The model got cheaper. The organization got more expensive." aria-label="Share to LinkedIn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+            LinkedIn
+          </button>
+        </div>
+      </blockquote>
+
+      <section class="beat-section" aria-label="Perspective shift two">
+        <div class="beat-before">BEFORE: Adding a dedicated AI team gives us clear ownership and faster iteration.</div>
+        <div class="beat-after">AFTER: Adding a dedicated AI team gave us two owners for every feature and zero owners for every production incident.</div>
+        <div class="beat-turn">TURN: More owners doesn't mean clearer ownership. It means more handoffs, and handoffs are where scale breaks.</div>
+      </section>
+
+      <p>Intercom's trajectory makes the oscillation visible at the company level. CEO Eoghan McCabe reorganized around the company's AI agent, Fin—first centralizing AI specialists into a dedicated team, then distributing them into product groups when the centralized model became a shipping bottleneck, then confronting the consistency problems that distribution created across products. Centralize, distribute, re-centralize. Each swing feels like progress. None of them address the underlying issue: they're all treating AI ownership as a team-placement question when it's an interface-contract question.</p>
+
+      <span class="scroll-mark" data-thing="3"></span>
+
+      <p>The cost anatomy at Klarna's scale is blunt. Seven hundred FTE-equivalent agents at a blended global customer-service cost basis of roughly $35,000 to $43,000 per year represent $24.5 million to $30.1 million in annual labor cost. The AI system handling that volume costs a fraction in compute and API calls. But the organizational cost of coordinating five teams around every prompt change, every model update, every compliance review is invisible on a P&amp;L. It shows up somewhere else. A change that took two to three days when one team owned the full stack now takes two to three weeks when five teams share it. That 5–7x slowdown, multiplied across every iteration every quarter, means the coordination tax erodes the cost advantage the AI was purchased to deliver. The model got cheaper. The organization got more expensive—specifically, the engineering hours burned in cross-team alignment, the sprint cycles lost waiting on another team's review, the on-call rotations that couldn't diagnose an issue outside their layer.</p>
+
+      <blockquote class="pull-quote" aria-label="Shareable quote">
+        <p>More owners doesn't mean clearer ownership. It means more handoffs, and handoffs are where scale breaks.</p>
+        <div class="share-row">
+          <button class="share-btn" data-platform="x" data-quote="More owners doesn't mean clearer ownership. It means more handoffs, and handoffs are where scale breaks." aria-label="Share to X">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            X
+          </button>
+          <button class="share-btn" data-platform="li" data-quote="More owners doesn't mean clearer ownership. It means more handoffs, and handoffs are where scale breaks." aria-label="Share to LinkedIn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+            LinkedIn
+          </button>
+        </div>
+      </blockquote>
+
+      <section class="widget-section" aria-label="Interactive cost model">
+        <h2>Find the inflection yourself</h2>
+        <div class="widget-controls">
+          <label>Teams touching the system: <span class="team-num" id="team-count">3</span></label>
+          <input type="range" id="team-slider" min="1" max="7" value="3" aria-label="Number of teams touching the AI system">
+        </div>
+        <svg class="cost-svg" id="cost-curve" viewBox="0 0 500 280" aria-label="Cost curve chart">
+          <line class="grid-line" x1="60" y1="40" x2="60" y2="240"/>
+          <line class="grid-line" x1="60" y1="240" x2="470" y2="240"/>
+          <line class="grid-line" x1="60" y1="190" x2="470" y2="190"/>
+          <line class="grid-line" x1="60" y1="140" x2="470" y2="140"/>
+          <line class="grid-line" x1="60" y1="90" x2="470" y2="90"/>
+          <line class="grid-line" x1="60" y1="40" x2="470" y2="40"/>
+          <text x="265" y="268" text-anchor="middle">Iterations per quarter</text>
+          <text x="14" y="145" text-anchor="middle" transform="rotate(-90,14,145)">Cost ($K / iteration)</text>
+          <text x="60" y="256" text-anchor="middle">0</text>
+          <text x="60" y="196" text-anchor="end">2</text>
+          <text x="60" y="146" text-anchor="end">4</text>
+          <text x="60" y="96" text-anchor="end">6</text>
+          <text x="60" y="46" text-anchor="end">8</text>
+          <text x="165" y="256" text-anchor="middle">5</text>
+          <text x="265" y="256" text-anchor="middle">10</text>
+          <text x="365" y="256" text-anchor="middle">15</text>
+          <text x="470" y="256" text-anchor="middle">20</text>
+          <polyline class="compute-line" id="compute-line" points=""/>
+          <polyline class="coord-line" id="coord-line" points=""/>
+          <polyline class="total-line" id="total-line" points=""/>
+          <circle class="inflection-dot" id="inflection-dot" cx="0" cy="0" r="5" style="display:none"/>
+          <text class="inflection-label" id="inflection-label" x="0" y="0" style="display:none">Inflection</text>
+          <circle class="legend-dot" cx="340" cy="52" fill="var(--accent2)"/><text x="350" y="56" fill="var(--accent2)" font-size="10" font-weight="600">Compute</text>
+          <circle class="legend-dot" cx="340" cy="68" fill="var(--accent)"/><text x="350" y="72" fill="var(--accent)" font-size="10" font-weight="600">Coordination</text>
+          <line x1="336" y1="84" x2="344" y2="84" stroke="var(--fg)" stroke-width="2" stroke-dasharray="3 2"/><text x="350" y="88" fill="var(--fg)" font-size="10">Total</text>
+        </svg>
+        <p class="widget-note" id="widget-note">At 3 teams, coordination stays below compute for all iterations shown.</p>
+        <figcaption>Where coordination eclipses compute</figcaption>
+      </section>
+
+      <figure class="bar-chart-section" aria-label="Klarna cost anatomy">
+        <h2>What Klarna actually pays</h2>
+        <div class="bar-row">
+          <span class="bar-label">Agent labor (saved)</span>
+          <div class="bar-track"><div class="bar-fill labor" id="bar-labor" style="--target-w:100%"><span class="bar-value">$27.3M / yr</span></div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label">AI compute cost</span>
+          <div class="bar-track"><div class="bar-fill compute" id="bar-compute" style="--target-w:8%"><span class="bar-value">~$2.2M / yr</span></div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label">Coordination overhead</span>
+          <div class="bar-track"><div class="bar-fill coord" id="bar-coord" style="--target-w:62%"><span class="bar-value">~$17M equiv.</span></div></div>
+        </div>
+        <p class="bar-annotation">Coordination cost estimated from 5–7x cycle-time increase across engineering iterations — the line item that doesn't exist on any P&amp;L.</p>
+        <figcaption>Where the savings vanish</figcaption>
+      </figure>
+
+      <div class="framework-item">
+        <strong>Map the concern span</strong>
+        <p>For every AI system in production, list each team that can affect its behavior or is affected by its output. If you exceed two names without a written contract between them, you've found the fracture. At Klarna, the list was five. At most organizations past MVP, it's three to four—and growing.</p>
+      </div>
+      <div class="framework-item">
+        <strong>Write interface contracts</strong>
+        <p>Not "Team X owns the AI system." Instead: "Team X controls prompt logic and is accountable for p95 latency under 200ms. Team Y controls training data and is accountable for accuracy above 94%. Team Z holds compliance veto and commits to 48-hour response on any flagged change." Contracts are verifiable in a sprint review. Ownership assignments aren't verifiable at all.</p>
+      </div>
+      <div class="framework-item">
+        <strong>Build incident protocols</strong>
+        <p>When the AI produces a wrong answer at 2 AM, who gets paged, in what sequence, with what authority to roll back or suppress? If answering this takes more than 30 seconds, the problem isn't ownership—it's an unspecified coordination flow, and no reorg fixes what hasn't been specified.</p>
+      </div>
+      <div class="framework-item">
+        <strong>Measure coordination tax</strong>
+        <p>Count the cross-team handoffs required to ship one AI feature change from proposal to production. Above three, the org structure costs more than the technology it supports. Track this number monthly. It stays flat (the contracts are working) or it climbs (the reorg added layers without adding clarity).</p>
+      </div>
+
+      <div class="cta-final">
+        <p>Within 24 hours: pick the AI system closest to production in your organization. List every team that touches it. If you pass two names without a written interface contract between them, you've found the fracture. Write the first contract before the week ends.</p>
+      </div>
+    </article>
+
+    <figure class="table-section" aria-label="Case comparison">
+      <h2>The pattern across three companies</h2>
+      <table class="comp-table" id="comp-table">
+        <thead>
+          <tr>
+            <th data-col="0" data-type="string">Company <span class="sort-arrow">&#9650;</span></th>
+            <th data-col="1" data-type="string">System <span class="sort-arrow">&#9650;</span></th>
+            <th data-col="2" data-type="number">Teams <span class="sort-arrow">&#9650;</span></th>
+            <th data-col="3" data-type="string">Dynamic <span class="sort-arrow">&#9650;</span></th>
+            <th data-col="4" data-type="string">Cycle impact <span class="sort-arrow">&#9650;</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Klarna</td>
+            <td>AI Assistant</td>
+            <td>5</td>
+            <td class="dynamic-name">Ownership fracture</td>
+            <td>5–7x slower</td>
+          </tr>
+          <tr>
+            <td>Microsoft</td>
+            <td>Copilot</td>
+            <td>2+</td>
+            <td class="dynamic-name">Layered conflict</td>
+            <td>Cross-org alignment</td>
+          </tr>
+          <tr>
+            <td>Intercom</td>
+            <td>Fin</td>
+            <td>3–4</td>
+            <td class="dynamic-name">Oscillation</td>
+            <td>Alternating bottleneck</td>
+          </tr>
+        </tbody>
+      </table>
+      <figcaption>Three companies, one pattern</figcaption>
+    </figure>
+
+    <figure class="concept-section" aria-label="Concept map">
+      <h2>Connected dynamics</h2>
+      <svg class="concept-svg" viewBox="0 0 560 320" aria-label="Concept map">
+        <line class="edge" x1="280" y1="110" x2="100" y2="50"/>
+        <line class="edge" x1="280" y1="110" x2="460" y2="50"/>
+        <line class="edge" x1="280" y1="110" x2="100" y2="210"/>
+        <line class="edge" x1="280" y1="110" x2="460" y2="210"/>
+        <line class="edge" x1="100" y1="210" x2="460" y2="210" stroke-dasharray="4 3"/>
+        <text class="edge-label" x="175" y="72" text-anchor="middle" transform="rotate(-20,175,72)">produces</text>
+        <text class="edge-label" x="385" y="72" text-anchor="middle" transform="rotate(20,385,72)">produces</text>
+        <text class="edge-label" x="175" y="168" text-anchor="middle" transform="rotate(20,175,168)">triggers</text>
+        <text class="edge-label" x="385" y="168" text-anchor="middle" transform="rotate(-20,385,168)">solved by</text>
+        <text class="edge-label" x="280" y="228" text-anchor="middle">fails to fix</text>
+        <rect class="center-rect" x="195" y="85" width="170" height="50" rx="6"/>
+        <text x="280" y="115" text-anchor="middle" font-size="13" font-weight="600" fill="var(--accent)">Ownership Fracture</text>
+        <rect class="node-rect" x="30" y="28" width="140" height="44" rx="6"/>
+        <text x="100" y="55" text-anchor="middle" font-size="11">Layered Conflict</text>
+        <rect class="node-rect" x="390" y="28" width="140" height="44" rx="6"/>
+        <text x="460" y="55" text-anchor="middle" font-size="11">Coordination Tax</text>
+        <rect class="node-rect" x="15" y="190" width="170" height="44" rx="6"/>
+        <text x="100" y="217" text-anchor="middle" font-size="11">Centralize-Distribute Oscillation</text>
+        <rect class="node-rect" x="390" y="190" width="140" height="44" rx="6"/>
+        <text x="460" y="210" text-anchor="middle" font-size="11">Interface</text>
+        <text x="460" y="224" text-anchor="middle" font-size="11">Contracts</text>
+        <text x="100" y="80" text-anchor="middle" font-size="8" fill="var(--fg-muted)">Microsoft</text>
+        <text x="460" y="80" text-anchor="middle" font-size="8" fill="var(--fg-muted)">Klarna</text>
+        <text x="100" y="248" text-anchor="middle" font-size="8" fill="var(--fg-muted)">Intercom</text>
+        <text x="460" y="248" text-anchor="middle" font-size="8" fill="var(--fg-muted)">Solution</text>
+      </svg>
+      <figcaption>How this connects wider</figcaption>
+    </figure>
+
+    <section class="recall-section" aria-label="Retrieval practice">
+      <h2>What stuck?</h2>
+      <p style="font-size:.85rem;color:var(--fg-muted);margin-bottom:16px">Tap each card to check your recall.</p>
+      <div class="recall-grid">
+        <div class="recall-card" tabindex="0" role="button" aria-label="Reveal answer">
+          <div class="recall-card-inner">
+            <div class="recall-front">How many conversations per month was Klarna's AI handling?<span class="recall-hint">tap</span></div>
+            <div class="recall-back">2.3 million</div>
+          </div>
+        </div>
+        <div class="recall-card" tabindex="0" role="button" aria-label="Reveal answer">
+          <div class="recall-card-inner">
+            <div class="recall-front">How many FTE-equivalent agents did that replace?<span class="recall-hint">tap</span></div>
+            <div class="recall-back">700</div>
+          </div>
+        </div>
+        <div class="recall-card" tabindex="0" role="button" aria-label="Reveal answer">
+          <div class="recall-card-inner">
+            <div class="recall-front">What's the dynamic when a horizontal AI layer creates ambiguous ownership at every integration point?<span class="recall-hint">tap</span></div>
+            <div class="recall-back">Layered ownership conflict</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <aside class="sidebar">
+    <div class="sidebar-card">
+      <h3>Key figures</h3>
+      <div class="fig-row"><span class="fig-label">Conversations / month</span><span class="fig-val">2.3M</span></div>
+      <div class="fig-row"><span class="fig-label">FTE agents replaced</span><span class="fig-val">700</span></div>
+      <div class="fig-row"><span class="fig-label">Annual labor equiv.</span><span class="fig-val">$24.5–30.1M</span></div>
+      <div class="fig-row"><span class="fig-label">Teams with claims</span><span class="fig-val">5</span></div>
+      <div class="fig-row"><span class="fig-label">Cycle-time increase</span><span class="fig-val">5–7x</span></div>
+    </div>
+    <div class="sidebar-card">
+      <h3>Scale markers</h3>
+      <div class="icon-legend">
+        <span class="icon-before"><svg viewBox="0 0 22 22"><rect x="3" y="3" width="16" height="16" rx="3" fill="none" stroke="var(--accent2)" stroke-width="1.8"/><line x1="0" y1="11" x2="3" y2="11" stroke="var(--accent2)" stroke-width="1.8"/><line x1="19" y1="11" x2="22" y2="11" stroke="var(--accent2)" stroke-width="1.8"/></svg></span>
+        Before scale: one owner
+      </div>
+      <div class="icon-legend">
+        <span class="icon-after"><svg viewBox="0 0 22 22"><rect x="1" y="1" width="6" height="6" rx="1.5" fill="none" stroke="var(--s1)" stroke-width="1.5"/><rect x="15" y="1" width="6" height="6" rx="1.5" fill="none" stroke="var(--s2)" stroke-width="1.5"/><rect x="1" y="15" width="6" height="6" rx="1.5" fill="none" stroke="var(--s3)" stroke-width="1.5"/><rect x="15" y="15" width="6" height="6" rx="1.5" fill="none" stroke="var(--s4)" stroke-width="1.5"/><rect x="8" y="8" width="6" height="6" rx="1.5" fill="none" stroke="var(--s5)" stroke-width="1.5"/></svg></span>
+        After scale: five claimants
+      </div>
+    </div>
+  </aside>
+</div>
+
+<footer>
+  <h3>Citations</h3>
+  <ol class="citations">
+    <li>Siemiatkowski, S. (2025). LinkedIn posts on Klarna AI assistant performance, February 2025. Subsequent interviews and media coverage confirming 2.3M conversations/month, 700 FTE-equivalent figure, and multi-team organizational structure.</li>
+    <li>Tech press reporting on Microsoft AI division creation under Mustafa Suleyman, March 2024, including Karen Simonyan appointment as chief scientist and organizational positioning relative to Microsoft 365, GitHub, and Dynamics product groups. Coverage through early 2025 on resulting coordination dynamics.</li>
+    <li>McCabe, E. (2024–2025). Public communications on Intercom's organizational restructuring around the Fin AI agent, including centralization, subsequent distribution, and consistency challenges encountered.</li>
+  </ol>
+  <button id="scroll-top" aria-label="Scroll to top">Back to top</button>
+  <p class="footer-home"><a href="https://iggym.github.io/scaling-ai-systems/">Scaling AI Systems</a></p>
+</footer>
+
+<script>
+(function(){
+  var prog=document.getElementById('progress');
+  window.addEventListener('scroll',function(){
+    var h=document.documentElement.scrollHeight-window.innerHeight;
+    var s=h>0?window.scrollY/h*100:0;
+    prog.style.width=s+'%';
+    prog.setAttribute('aria-valuenow',Math.round(s));
+  },{passive:true});
+
+  var ham=document.getElementById('hamburger'),dr=document.getElementById('drawer'),ov=document.getElementById('drawer-overlay');
+  function toggleDrawer(){var open=dr.classList.toggle('open');ov.classList.toggle('open',open);ham.setAttribute('aria-expanded',open)}
+  ham.addEventListener('click',toggleDrawer);
+  ov.addEventListener('click',toggleDrawer);
+
+  document.getElementById('scroll-top').addEventListener('click',function(){window.scrollTo({top:0,behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'})});
+
+  var beats=document.querySelectorAll('.beat-section');
+  if(!window.matchMedia('(prefers-reduced-motion:reduce)').matches){
+    var beatObs=new IntersectionObserver(function(entries){
+      entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('revealed');beatObs.unobserve(e.target)}});
+    },{threshold:0.35});
+    beats.forEach(function(b){beatObs.observe(b)});
+  }else{beats.forEach(function(b){b.classList.add('revealed')})}
+
+  var barSec=document.querySelector('.bar-chart-section');
+  if(!window.matchMedia('(prefers-reduced-motion:reduce)').matches){
+    var barObs=new IntersectionObserver(function(entries){
+      entries.forEach(function(e){if(e.isIntersecting){
+        e.target.classList.add('revealed');
+        e.target.querySelectorAll('.bar-fill').forEach(function(f){f.style.width=f.style.getPropertyValue('--target-w')});
+        barObs.unobserve(e.target);
+      }});
+    },{threshold:0.3});
+    barObs.observe(barSec);
+  }else{
+    barSec.classList.add('revealed');
+    barSec.querySelectorAll('.bar-fill').forEach(function(f){f.style.width=f.style.getPropertyValue('--target-w')});
+  }
+
+  var things=document.querySelectorAll('.scroll-mark');
+  var thingObs=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        var n=e.target.getAttribute('data-thing');
+        var t=document.querySelector('.thing[data-thing="'+n+'"]');
+        if(t)t.classList.add('unlocked');
+        thingObs.unobserve(e.target);
+      }
+    });
+  },{threshold:0.1});
+  things.forEach(function(m){thingObs.observe(m)});
+
+  var slider=document.getElementById('team-slider'),countEl=document.getElementById('team-count');
+  var computeLine=document.getElementById('compute-line'),coordLine=document.getElementById('coord-line'),totalLine=document.getElementById('total-line');
+  var infDot=document.getElementById('inflection-dot'),infLabel=document.getElementById('inflection-label');
+  var note=document.getElementById('widget-note');
+
+  function drawCurve(t){
+    countEl.textContent=t;
+    var cPts=[],coPts=[],tPts=[];
+    var infX=-1,infY=-1,found=false;
+    for(var i=0;i<=20;i++){
+      var x=60+i*20.5;
+      var compute=0.5+i*0.05;
+      var coord=t<=1?0.05:(t-1)*0.3*(1+i*0.12);
+      var total=compute+coord;
+      var cy=240-compute*25;
+      var coy=240-coord*25;
+      var ty=240-total*25;
+      cPts.push(x+','+cy);
+      coPts.push(x+','+coy);
+      tPts.push(x+','+ty);
+      if(!found&&coord>compute&&i>0){infX=x;infY=ty;found=true}
+    }
+    computeLine.setAttribute('points',cPts.join(' '));
+    coordLine.setAttribute('points',coPts.join(' '));
+    totalLine.setAttribute('points',tPts.join(' '));
+    if(found){
+      infDot.setAttribute('cx',infX);infDot.setAttribute('cy',infY);infDot.style.display='';
+      infLabel.setAttribute('x',infX-30);infLabel.setAttribute('y',infY-10);infLabel.style.display='';
+      var iter=Math.round((infX-60)/20.5);
+      note.textContent='At '+t+' teams, coordination overtakes compute at ~'+iter+' iterations/quarter. Past this point, adding more iterations costs more in coordination than it saves in labor.';
+    }else{
+      infDot.style.display='none';infLabel.style.display='none';
+      note.textContent='At '+t+' team'+(t>1?'s':'')+', coordination stays below compute for all iterations shown.';
+    }
+  }
+  drawCurve(3);
+  slider.addEventListener('input',function(){drawCurve(parseInt(this.value))});
+
+  var pageUrl=window.location.href;
+  document.querySelectorAll('.share-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var q=this.getAttribute('data-quote');
+      var p=this.getAttribute('data-platform');
+      var url=encodeURIComponent(pageUrl);
+      var text=encodeURIComponent(q);
+      if(p==='x'){window.open('https://twitter.com/intent/tweet?text='+text+'&url='+url,'_blank')}
+      else if(p==='li'){window.open('https://www.linkedin.com/sharing/share-offsite/?url='+url,'_blank')}
+    });
+  });
+
+  var table=document.getElementById('comp-table');
+  var ths=table.querySelectorAll('th');
+  var rows=Array.prototype.slice.call(table.querySelectorAll('tbody tr'));
+  ths.forEach(function(th){
+    th.addEventListener('click',function(){
+      ths.forEach(function(t){t.classList.remove('sorted')});
+      this.classList.add('sorted');
+      var col=parseInt(this.getAttribute('data-col'));
+      var type=this.getAttribute('data-type');
+      rows.sort(function(a,b){
+        var av=a.children[col].textContent,bv=b.children[col].textContent;
+        if(type==='number'){return parseFloat(av)-parseFloat(bv)}
+        return av.localeCompare(bv);
+      });
+      var tb=table.querySelector('tbody');
+      rows.forEach(function(r){tb.appendChild(r)});
+    });
+  });
+
+  document.querySelectorAll('.recall-card').forEach(function(c){
+    function flip(){c.classList.toggle('flipped')}
+    c.addEventListener('click',flip);
+    c.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();flip()}});
+  });
+
+})();
+</script>
+</body>
+</html>

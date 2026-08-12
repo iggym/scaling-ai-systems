@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>When Code Replaces Departments</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --surface: #14141c;
+            --border: #2a2a3a;
+            --text: #e0e0e8;
+            --text-dim: #8a8a9a;
+            --accent: #00ff9d;
+            --warn: #ff3366;
+            --glass: rgba(20, 20, 28, 0.8);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        #progress {
+            position: fixed;
+            top: 0; left: 0;
+            height: 3px;
+            background: var(--accent);
+            width: 0%;
+            z-index: 1000;
+            transition: width 0.1s;
+        }
+        #topbar {
+            position: sticky;
+            top: 0;
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            z-index: 999;
+            padding: 1rem 2rem;
+        }
+        #topbar nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .logo a { color: var(--accent); text-decoration: none; font-weight: 800; }
+        .breadcrumb { color: var(--text-dim); font-size: 0.9rem; }
+        .meta { color: var(--text-dim); font-size: 0.9rem; }
+        #hamburger {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        article { max-width: 800px; }
+        .hero-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            line-height: 1.1;
+            margin-bottom: 2rem;
+            background: linear-gradient(90deg, #fff, #8a8a9a);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.8rem;
+            margin: 2.5rem 0 1rem 0;
+            color: var(--accent);
+        }
+        p { margin-bottom: 1.5rem; font-size: 1.1rem; }
+        .beat-marker {
+            display: inline-block;
+            background: var(--warn);
+            color: #fff;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        .spectrum-widget {
+            display: flex;
+            justify-content: space-between;
+            border: 1px solid var(--border);
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+            background: var(--surface);
+        }
+        .spectrum-item { text-align: center; flex: 1; }
+        .spectrum-arrow { color: var(--text-dim); align-self: center; }
+        .share-block {
+            margin: 2rem 0;
+            padding: 1.5rem;
+            border-left: 4px solid var(--accent);
+            background: var(--surface);
+            border-radius: 0 8px 8px 0;
+        }
+        .share-buttons { margin-top: 1rem; display: flex; gap: 1rem; }
+        .share-btn {
+            background: var(--bg);
+            color: var(--text);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            border: 1px solid var(--border);
+            transition: border-color 0.2s;
+        }
+        .share-btn:hover { border-color: var(--accent); }
+        
+        .widget-container {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 2rem 0;
+            background: var(--surface);
+        }
+        .widget-container h3 { margin-bottom: 1rem; color: var(--text); }
+        .slider-container { margin-bottom: 1.5rem; }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: var(--bg);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+        .chart-area {
+            width: 100%;
+            height: 300px;
+            position: relative;
+        }
+        svg { width: 100%; height: 100%; overflow: visible; }
+        .axis { stroke: var(--border); stroke-width: 1; }
+        .axis-text { fill: var(--text-dim); font-size: 12px; font-family: 'Inter', sans-serif; }
+        .line-human { stroke: var(--warn); stroke-width: 3; fill: none; }
+        .line-ai { stroke: var(--accent); stroke-width: 3; fill: none; transition: d 0.1s; }
+        .warning-text {
+            color: var(--warn);
+            font-weight: 700;
+            margin-top: 1rem;
+            display: none;
+        }
+        figcaption {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            margin-top: 1rem;
+            font-style: italic;
+            border-left: 2px solid var(--border);
+            padding-left: 1rem;
+        }
+        
+        .reveal-section {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+            margin: 2rem 0;
+            padding: 1.5rem;
+            border: 1px dashed var(--border);
+            border-radius: 8px;
+        }
+        .reveal-section.visible { opacity: 1; transform: translateY(0); }
+        .reveal-content { display: flex; gap: 2rem; }
+        .reveal-box { flex: 1; padding: 1rem; background: var(--bg); border-radius: 4px; }
+        
+        .tracker {
+            position: sticky;
+            top: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .tracker-item {
+            padding: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--surface);
+            transition: all 0.3s;
+            opacity: 0.4;
+        }
+        .tracker-item.active {
+            opacity: 1;
+            border-color: var(--accent);
+            box-shadow: 0 0 10px rgba(0, 255, 157, 0.1);
+        }
+        .tracker-item h4 { font-size: 0.9rem; margin-bottom: 0.3rem; color: var(--accent); }
+        .tracker-item p { font-size: 0.8rem; color: var(--text-dim); margin: 0; }
+        
+        .recall-cards { margin: 3rem 0; }
+        .card { background: var(--surface); border: 1px solid var(--border); padding: 1.5rem; margin-bottom: 1rem; border-radius: 6px; cursor: pointer; }
+        .card-question { color: var(--text); font-weight: 600; }
+        .card-answer { color: var(--accent); margin-top: 1rem; display: none; }
+        .card.flipped .card-answer { display: block; }
+        .card.flipped .card-question { color: var(--text-dim); }
+        
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 3rem 2rem;
+            text-align: center;
+            margin-top: 4rem;
+        }
+        .scroll-top {
+            display: inline-block;
+            margin-top: 1rem;
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .citations { font-size: 0.8rem; color: var(--text-dim); margin-bottom: 1.5rem; }
+        
+        @media (max-width: 880px) {
+            .container { grid-template-columns: 1fr; }
+            #hamburger { display: block; }
+            .meta, .breadcrumb { display: none; }
+            .tracker { position: static; flex-direction: row; overflow-x: auto; top: auto; }
+            .tracker-item { min-width: 200px; }
+            .reveal-content { flex-direction: column; }
+            .spectrum-widget { flex-direction: column; gap: 1rem; }
+            .spectrum-arrow { transform: rotate(90deg); }
+        }
+        
+        @media (prefers-reduced-motion: reduce) {
+            * { transition: none !important; animation: none !important; }
+            .reveal-section { opacity: 1; transform: none; }
+        }
+    </style>
+</head>
+<body>
+    <div id="progress"></div>
+    
+    <header id="topbar">
+        <nav>
+            <div class="logo"><a href="https://iggym.github.io/scaling-ai-systems/">Home</a></div>
+            <div class="breadcrumb">Org Design / Boundary Collapse</div>
+            <div class="meta">6 min read</div>
+            <button id="hamburger">☰</button>
+        </nav>
+    </header>
+
+    <main class="container">
+        <article>
+            <h1 class="hero-title">When Code Replaces Departments</h1>
+            
+            <div class="spectrum-widget">
+                <div class="spectrum-item">
+                    <strong>Tool</strong>
+                    <p style="font-size:0.8rem; color:var(--text-dim); margin:0;">IT Asset</p>
+                </div>
+                <div class="spectrum-arrow">➔</div>
+                <div class="spectrum-item">
+                    <strong>Agent</strong>
+                    <p style="font-size:0.8rem; color:var(--accent); margin:0;">Operational Unit</p>
+                </div>
+            </div>
+
+            <p>On February 27, 2024, Klarna CEO Sebastian Siemiatkowski posted a chart that broke the traditional customer service model. An OpenAI-powered assistant had handled 2.3 million customer conversations in a single month. The software did the equivalent work of 700 full-time agents.</p>
+
+            <div id="beat-1-anchor"></div>
+            <span class="beat-marker">BEAT 1</span>
+            <p><strong>BEFORE:</strong> Engineering teams build tools for humans to use.<br>
+            <strong>AFTER:</strong> Engineering teams build digital employees with their own P&L.<br>
+            <strong>TURN:</strong> The moment an AI agent handles 2.3 million tasks, it stops being an IT asset and becomes an operational unit.</p>
+
+            <h2>The Boundary Collapse</h2>
+            <p>Scaling AI isn't a model problem; it's a boundary problem. When an agent's output volume rivals a human department, the wall between platform engineering, ML operations, and business operations collapses. You cannot manage a 700-agent equivalent using an IT ticketing system.</p>
+            
+            <p>The cost of an AI agent doesn't scale linearly with usage; it scales with the complexity of the context window. Your biggest bill comes from your hardest cases, not your most frequent ones.</p>
+
+            <div class="widget-container">
+                <h3>Drag the Complexity Lever</h3>
+                <div class="slider-container">
+                    <label for="complexity-slider">Task Complexity (Tokens per Conversation)</label>
+                    <input type="range" id="complexity-slider" min="1000" max="35000" value="3000">
+                    <div style="color:var(--accent); margin-top:0.5rem;" id="token-display">3,000 tokens</div>
+                </div>
+                <div class="chart-area">
+                    <svg viewBox="0 0 400 250" preserveAspectRatio="none">
+                        <!-- Axes -->
+                        <line x1="40" y1="210" x2="380" y2="210" class="axis" />
+                        <line x1="40" y1="10" x2="40" y2="210" class="axis" />
+                        
+                        <!-- Labels -->
+                        <text x="200" y="240" text-anchor="middle" class="axis-text">Conversation Volume (Millions)</text>
+                        <text x="10" y="110" text-anchor="middle" transform="rotate(-90 10,110)" class="axis-text">Monthly Cost ($ Millions)</text>
+                        <text x="35" y="215" text-anchor="end" class="axis-text">$0</text>
+                        <text x="35" y="45" text-anchor="end" class="axis-text">$3M</text>
+                        <text x="40" y="225" text-anchor="middle" class="axis-text">0</text>
+                        <text x="380" y="225" text-anchor="middle" class="axis-text">3M</text>
+
+                        <!-- Human Cost Line (Fixed) -->
+                        <path id="human-cost-line" d="M 40 210 L 380 45" class="line-human" />
+                        <text x="360" y="40" text-anchor="end" class="axis-text" fill="#ff3366">Human Agents ($3.04M)</text>
+
+                        <!-- AI Cost Line (Dynamic) -->
+                        <path id="ai-cost-line" d="M 40 210 L 380 200" class="line-ai" />
+                        <text x="360" y="195" text-anchor="end" class="axis-text" id="ai-label" fill="#00ff9d">AI Agent ($270k)</text>
+                    </svg>
+                </div>
+                <div class="warning-text" id="inflection-warning">Inflection Point Reached: Humans are now cheaper.</div>
+                <figcaption>Dragging complexity reveals the exact token threshold where humans become cheaper than code.</figcaption>
+            </div>
+
+            <h2>Cost Anatomy</h2>
+            <p>Look at the numbers. Replacing 700 human agents at a fully loaded cost of $40,000 each runs about $28 million a year. Running 2.3 million conversations through the OpenAI API—assuming 2,000 input and 1,000 output tokens per chat at GPT-4 pricing—costs roughly $276,000 a month. That is $3.3 million a year. The math yields a $24.7 million annual savings, aligning tightly with Klarna's claimed $40 million profit impact.</p>
+
+            <p>The strongest counterargument is that AI agents degrade service quality and push complexity onto customers. Klarna reported customer satisfaction scores equal to human agents, with average resolution times dropping from 11 minutes to under 2 minutes. The nuance lies in the shifted cost-quality tradeoff curve. Keeping humans on tier-1 queries became an unjustifiable capital expense.</p>
+
+            <div class="share-block">
+                <p style="color:var(--text); font-weight:600;">"Scaling AI isn't a model problem; it's a boundary problem. When an agent's output volume rivals a department, the wall between platform engineering and business operations collapses."</p>
+                <div class="share-buttons">
+                    <a href="https://twitter.com/intent/tweet?text=Scaling%20AI%20isn%27t%20a%20model%20problem%3B%20it%27s%20a%20boundary%20problem.%20When%20an%20agent%27s%20output%20volume%20rivals%20a%20department%2C%20the%20wall%20between%20platform%20engineering%20and%20business%20operations%20collapses.&url=https%3A%2F%2Figgym.github.io%2Fscaling-ai-systems%2F" target="_blank" class="share-btn">Share on X</a>
+                    <a href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Figgym.github.io%2Fscaling-ai-systems%2F&summary=Scaling%20AI%20isn%27t%20a%20model%20problem%3B%20it%27s%20a%20boundary%20problem." target="_blank" class="share-btn">Share on LinkedIn</a>
+                </div>
+            </div>
+
+            <section class="reveal-section" id="beat-1-reveal">
+                <div class="reveal-content">
+                    <div class="reveal-box">
+                        <h4 style="color:var(--warn);">Mental Model: Tool</h4>
+                        <p style="font-size:0.9rem; color:var(--text-dim);">IT owns the software. Operations owns the humans. The software assists the humans.</p>
+                    </div>
+                    <div class="reveal-box">
+                        <h4 style="color:var(--accent);">Mental Model: Employee</h4>
+                        <p style="font-size:0.9rem; color:var(--text-dim);">Ops owns the agent's success metrics. Platform owns the agent's infrastructure. The agent replaces the humans.</p>
+                    </div>
+                </div>
+                <figcaption>Scroll reveals the shift in accountability required at scale.</figcaption>
+            </section>
+
+            <p>The brain predicts outcomes based on past models. When an agent handles millions of tasks, our mental model of "tool" breaks, forcing a prediction error that restructures how we assign accountability. We stop seeing a script and start seeing a colleague.</p>
+
+            <div id="beat-2-anchor"></div>
+            <span class="beat-marker">BEAT 2</span>
+            <p><strong>BEFORE:</strong> We need a centralized AI team to build our agents.<br>
+            <strong>AFTER:</strong> We need platform infrastructure owned by one group, and agent design owned by product teams.<br>
+            <strong>TURN:</strong> Two days after Klarna's announcement, GitHub launched Copilot Enterprise for $39 per user per month. The pricing forced a structural admission: a central AI team cannot manage custom code indexing, compliance, and RAG pipelines for every department.</p>
+
+            <h2>The Infra-Product Split</h2>
+            <p>If you are an engineering leader past MVP, you need to restructure how AI ownership works right now. Split the AI org. Platform engineering owns the model gateways, token budget, and RAG infrastructure. Product teams own the prompts, tool integrations, and agent success metrics. Assign a human P&L owner to every agent. If an agent does the work of 700 people, someone needs to be accountable for its output, just like a department head. Budget by task complexity, not volume. Track the token cost of your hardest 1% of queries, because that is where your margin bleeds.</p>
+
+            <p>Audit your highest-volume automated workflow today. Find the human manager who would be accountable if that workflow were a team of people, and assign them ownership of the agent's success metrics.</p>
+
+            <div class="recall-cards">
+                <h2>Recall Check</h2>
+                <div class="card" onclick="this.classList.toggle('flipped')">
+                    <div class="card-question">How much did Klarna save annually by replacing 700 agents with AI?</div>
+                    <div class="card-answer">$24.7 million in calculated savings ($28M human cost vs $3.3M AI cost).</div>
+                </div>
+                <div class="card" onclick="this.classList.toggle('flipped')">
+                    <div class="card-question">What scales the cost of an AI agent more than usage volume?</div>
+                    <div class="card-answer">The complexity of the context window.</div>
+                </div>
+                <div class="card" onclick="this.classList.toggle('flipped')">
+                    <div class="card-question">Why did GitHub Copilot Enterprise force an org split?</div>
+                    <div class="card-answer">A central AI team cannot manage custom RAG, compliance, and code indexing for every department.</div>
+                </div>
+            </div>
+        </article>
+
+        <aside class="sidebar">
+            <div class="tracker">
+                <div class="tracker-item" id="tracker-1">
+                    <h4>1. Complexity Scales Cost</h4>
+                    <p>AI cost scales with context window size, not just usage.</p>
+                </div>
+                <div class="tracker-item" id="tracker-2">
+                    <h4>2. Boundary Collapse</h4>
+                    <p>High-volume agents merge IT and Operations accountability.</p>
+                </div>
+                <div class="tracker-item" id="tracker-3">
+                    <h4>3. Infra-Product Split</h4>
+                    <p>Centralized AI teams break; platform and product must decouple.</p>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <footer>
+        <div class="citations">
+            Sources: Klarna Q4 2023 Press Release (Feb 27, 2024); GitHub Blog (Feb 29, 2024). All calculations based on public GPT-4 pricing as of March 2024.
+        </div>
+        <a href="https://iggym.github.io/scaling-ai-systems/" class="logo">Home</a>
+        <br>
+        <a href="#top" class="scroll-top">Back to top</a>
+    </footer>
+
+    <script>
+        // Progress Bar
+        const progress = document.getElementById('progress');
+        window.addEventListener('scroll', () => {
+            const scrollTop = window.scrollY;
+            const docHeight = document.body.offsetHeight - window.innerHeight;
+            const scrollPercent = (scrollTop / docHeight) * 100;
+            progress.style.width = scrollPercent + '%';
+        });
+
+        // Hamburger (mobile drawer effect)
+        const hamburger = document.getElementById('hamburger');
+        const tracker = document.querySelector('.tracker');
+        hamburger.addEventListener('click', () => {
+            if (tracker.style.display === 'block' || tracker.style.display === 'flex') {
+                tracker.style.display = 'none';
+            } else {
+                tracker.style.display = 'flex';
+            }
+        });
+
+        // Interactive Cost Widget
+        const slider = document.getElementById('complexity-slider');
+        const aiLine = document.getElementById('ai-cost-line');
+        const aiLabel = document.getElementById('ai-label');
+        const tokenDisplay = document.getElementById('token-display');
+        const warning = document.getElementById('inflection-warning');
+        
+        // Y-axis: 0 to $3M. SVG height 170 (from 210 down to 40).
+        // Human cost at 3M convos = $3.04M. Y = 210 - (3.04/3.0)*170 = 210 - 172 = 38.
+        // AI cost at 3M convos = 3M * complexity * 0.00003.
+        const updateChart = () => {
+            const complexity = parseInt(slider.value);
+            tokenDisplay.innerText = complexity.toLocaleString() + ' tokens';
+            
+            const aiCostAt3M = 3000000 * complexity * 0.00003;
+            const aiY = 210 - (aiCostAt3M / 3000000) * 170;
+            
+            // Clamp Y to not go above 10
+            const clampedY = Math.max(10, aiY);
+            
+            aiLine.setAttribute('d', `M 40 210 L 380 ${clampedY}`);
+            
+            const costInMillions = (aiCostAt3M / 1000000).toFixed(2);
+            aiLabel.innerText = `AI Agent ($${costInMillions}M)`;
+            
+            // Position label above the line
+            const labelY = clampedY < 30 ? clampedY + 20 : clampedY - 5;
+            aiLabel.setAttribute('y', labelY);
+            
+            if (aiCostAt3M > 3040000) {
+                warning.style.display = 'block';
+            } else {
+                warning.style.display = 'none';
+            }
+        };
+        
+        slider.addEventListener('input', updateChart);
+        updateChart(); // Init
+
+        // Scroll Reveal for Beat 1
+        const revealSection = document.getElementById('beat-1-reveal');
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.3 });
+        revealObserver.observe(revealSection);
+
+        // Three Things Tracker
+        const trackerItems = document.querySelectorAll('.tracker-item');
+        const sectionsToTrack = [
+            { el: document.querySelector('.widget-container'), id: 'tracker-1' },
+            { el: document.getElementById('beat-1-anchor'), id: 'tracker-2' },
+            { el: document.getElementById('beat-2-anchor'), id: 'tracker-3' }
+        ];
+
+        const trackerObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const matchingTracker = document.getElementById(entry.target.dataset.trackerId);
+                    if (matchingTracker) {
+                        trackerItems.forEach(item => item.classList.remove('active'));
+                        matchingTracker.classList.add('active');
+                    }
+                }
+            });
+        }, { threshold: 0.5 });
+
+        sectionsToTrack.forEach(section => {
+            if (section.el) {
+                section.el.dataset.trackerId = section.id;
+                trackerObserver.observe(section.el);
+            }
+        });
+
+        // Smooth scroll to top
+        document.querySelector('.scroll-top').addEventListener('click', (e) => {
+            e.preventDefault();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    </script>
+</body>
+</html>

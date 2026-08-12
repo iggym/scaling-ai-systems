@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Three-Team Trap — Scaling AI Systems</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0d0b;
+  --bg-elevated: #181816;
+  --bg-card: #1e1e1b;
+  --fg: #e8e4dc;
+  --fg-dim: #b5b0a6;
+  --muted: #6a655c;
+  --accent: #d4a843;
+  --accent-bright: #f0c050;
+  --accent-dim: #8a6e2a;
+  --before-clr: #4a9e7a;
+  --after-clr: #d45050;
+  --border: #2a2926;
+  --radius: 8px;
+  --font-heading: 'Space Grotesk', sans-serif;
+  --font-body: 'Source Sans 3', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 18px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Progress Bar ─── */
+#progress {
+  position: fixed; top: 0; left: 0; height: 3px;
+  background: linear-gradient(90deg, var(--accent-dim), var(--accent-bright));
+  z-index: 1100; width: 0; transition: width 0.08s linear;
+}
+
+/* ─── Topbar ─── */
+#topbar {
+  position: sticky; top: 0; z-index: 1000;
+  background: rgba(13,13,11,0.72);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  border-bottom: 1px solid rgba(232,228,220,0.06);
+  padding: 0.5rem 1.5rem;
+  display: flex; align-items: center; justify-content: space-between;
+  font-family: var(--font-heading);
+}
+#topbar-left { display: flex; align-items: center; gap: 1rem; }
+#topbar a.home-link {
+  color: var(--accent); text-decoration: none; font-weight: 700;
+  font-size: 0.85rem; letter-spacing: 0.04em; text-transform: uppercase;
+}
+#topbar .breadcrumb {
+  color: var(--muted); font-size: 0.78rem; letter-spacing: 0.02em;
+}
+#topbar .breadcrumb span { color: var(--fg-dim); }
+#topbar-right { display: flex; align-items: center; gap: 1rem; }
+.reading-time {
+  color: var(--muted); font-size: 0.75rem; font-family: var(--font-heading);
+  letter-spacing: 0.03em;
+}
+.hamburger {
+  display: none; background: none; border: none; cursor: pointer;
+  width: 28px; height: 28px; position: relative;
+}
+.hamburger span {
+  display: block; width: 20px; height: 2px; background: var(--fg-dim);
+  position: absolute; left: 4px; transition: all 0.25s;
+}
+.hamburger span:nth-child(1) { top: 7px; }
+.hamburger span:nth-child(2) { top: 13px; }
+.hamburger span:nth-child(3) { top: 19px; }
+.hamburger.open span:nth-child(1) { top: 13px; transform: rotate(45deg); }
+.hamburger.open span:nth-child(2) { opacity: 0; }
+.hamburger.open span:nth-child(3) { top: 13px; transform: rotate(-45deg); }
+
+/* ─── Hero ─── */
+.hero {
+  padding: 4rem 1.5rem 2.5rem;
+  max-width: 900px; margin: 0 auto;
+  border-bottom: 1px solid var(--border);
+}
+.hero-title {
+  font-family: var(--font-heading);
+  font-size: clamp(2.2rem, 5.5vw, 4.2rem);
+  font-weight: 800; line-height: 1.05;
+  letter-spacing: -0.03em; color: var(--fg);
+}
+.hero-title .accent { color: var(--accent); }
+.hero-sub {
+  margin-top: 1rem; color: var(--fg-dim);
+  font-size: 1.05rem; max-width: 640px;
+}
+
+/* ─── Spectrum Widget ─── */
+.spectrum {
+  max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem;
+}
+.spectrum-box {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;
+  background: var(--bg-elevated); border-radius: var(--radius);
+  padding: 1.5rem; border: 1px solid var(--border);
+}
+.spectrum-side { padding: 1rem; border-radius: 6px; }
+.spectrum-side.before {
+  background: rgba(74,158,122,0.08); border-left: 3px solid var(--before-clr);
+}
+.spectrum-side.after {
+  background: rgba(212,80,80,0.08); border-left: 3px solid var(--after-clr);
+}
+.spectrum-label {
+  font-family: var(--font-heading); font-size: 0.7rem;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  margin-bottom: 0.5rem;
+}
+.spectrum-side.before .spectrum-label { color: var(--before-clr); }
+.spectrum-side.after .spectrum-label { color: var(--after-clr); }
+.spectrum-text { font-size: 0.95rem; color: var(--fg-dim); line-height: 1.5; }
+
+/* ─── Content Grid ─── */
+.content-grid {
+  max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem;
+  display: grid; grid-template-columns: 1fr 300px; gap: 2.5rem;
+  align-items: start;
+}
+
+/* ─── Article ─── */
+article.main-col { max-width: 100%; }
+article h2 {
+  font-family: var(--font-heading); font-size: 1.5rem; font-weight: 700;
+  margin: 2.5rem 0 1rem; color: var(--fg); letter-spacing: -0.02em;
+}
+article p { margin-bottom: 1.2rem; }
+article ul { margin: 0.8rem 0 1.2rem 1.2rem; }
+article ul li { margin-bottom: 0.4rem; }
+article strong { color: var(--fg); font-weight: 600; }
+
+/* ─── Scale Markers (icon system) ─── */
+.marker {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  font-size: 0.78rem; font-family: var(--font-heading);
+  letter-spacing: 0.04em; text-transform: uppercase; font-weight: 600;
+}
+.marker-before { color: var(--before-clr); }
+.marker-after { color: var(--after-clr); }
+.marker svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+/* ─── Pull Quotes ─── */
+.pull-quote {
+  position: relative; margin: 2rem 0; padding: 1.5rem 1.8rem;
+  background: var(--bg-elevated); border-left: 4px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  font-size: 1.15rem; font-weight: 500; line-height: 1.45;
+  color: var(--fg);
+}
+.pull-quote .share-icons {
+  display: flex; gap: 0.6rem; margin-top: 0.8rem;
+}
+.pull-quote .share-icons a {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 50%;
+  background: rgba(212,168,67,0.12); color: var(--accent);
+  text-decoration: none; transition: background 0.2s;
+}
+.pull-quote .share-icons a:hover { background: rgba(212,168,67,0.25); }
+.pull-quote .share-icons svg { width: 14px; height: 14px; }
+
+/* ─── Beat Sections ─── */
+.beat-section {
+  margin: 2rem 0; padding: 1.5rem;
+  background: var(--bg-card); border-radius: var(--radius);
+  border: 1px solid var(--border);
+  opacity: 0; transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.beat-section.revealed { opacity: 1; transform: translateY(0); }
+.beat-label {
+  font-family: var(--font-heading); font-size: 0.68rem;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--accent); margin-bottom: 0.6rem; font-weight: 700;
+}
+.beat-before { color: var(--before-clr); font-weight: 600; }
+.beat-after { color: var(--after-clr); font-weight: 600; }
+.beat-arrow { color: var(--muted); margin: 0 0.3rem; }
+
+/* ─── Aside ─── */
+.aside-block {
+  margin: 1.5rem 0; padding: 1rem 1.2rem;
+  background: rgba(212,168,67,0.06); border-radius: 6px;
+  border-left: 2px solid var(--accent-dim);
+  font-size: 0.92rem; color: var(--fg-dim); line-height: 1.55;
+}
+
+/* ─── CTA ─── */
+.cta-block {
+  margin: 2.5rem 0; padding: 1.8rem;
+  background: linear-gradient(135deg, rgba(212,168,67,0.1), rgba(212,168,67,0.03));
+  border: 1px solid var(--accent-dim); border-radius: var(--radius);
+}
+.cta-block p { margin-bottom: 0; font-weight: 500; }
+
+/* ─── Sidebar ─── */
+.sidebar { position: sticky; top: 5rem; }
+.sidebar-section {
+  margin-bottom: 1.5rem; padding: 1rem;
+  background: var(--bg-card); border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+.sidebar-section h3 {
+  font-family: var(--font-heading); font-size: 0.75rem;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--accent); margin-bottom: 0.8rem; font-weight: 700;
+}
+
+/* Three Things Tracker */
+.thing-item {
+  display: flex; align-items: flex-start; gap: 0.5rem;
+  margin-bottom: 0.7rem; font-size: 0.82rem; line-height: 1.4;
+  color: var(--muted); transition: color 0.4s;
+}
+.thing-item.unlocked { color: var(--fg-dim); }
+.thing-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  margin-top: 4px; background: var(--border); transition: background 0.4s;
+}
+.thing-item.unlocked .thing-dot { background: var(--accent); }
+
+/* Recall Cards */
+.recall-card {
+  margin-bottom: 0.6rem; cursor: pointer;
+  perspective: 600px; min-height: 70px;
+}
+.recall-card-inner {
+  position: relative; width: 100%; min-height: 70px;
+  transition: transform 0.5s; transform-style: preserve-3d;
+}
+.recall-card.flipped .recall-card-inner { transform: rotateY(180deg); }
+.recall-face {
+  position: absolute; inset: 0; backface-visibility: hidden;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0.6rem 0.8rem; border-radius: 6px;
+  font-size: 0.8rem; line-height: 1.35; text-align: center;
+}
+.recall-front {
+  background: rgba(212,168,67,0.08); border: 1px solid var(--accent-dim);
+  color: var(--fg-dim);
+}
+.recall-back {
+  background: rgba(74,158,122,0.1); border: 1px solid var(--before-clr);
+  color: var(--fg); transform: rotateY(180deg);
+}
+
+/* ─── Centerpiece Widget ─── */
+.centerpiece {
+  max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem;
+}
+.centerpiece-box {
+  background: var(--bg-elevated); border-radius: var(--radius);
+  border: 1px solid var(--border); padding: 1.5rem; overflow: hidden;
+}
+.centerpiece-box h3 {
+  font-family: var(--font-heading); font-size: 1.1rem;
+  font-weight: 700; color: var(--fg); margin-bottom: 0.3rem;
+}
+.centerpiece-box .caption {
+  font-size: 0.82rem; color: var(--muted); margin-bottom: 1.2rem;
+}
+.slider-row {
+  display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;
+}
+.slider-row label {
+  font-family: var(--font-heading); font-size: 0.78rem;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--fg-dim); white-space: nowrap; font-weight: 600;
+}
+.slider-row input[type=range] {
+  flex: 1; -webkit-appearance: none; appearance: none;
+  height: 6px; border-radius: 3px;
+  background: var(--border); outline: none;
+}
+.slider-row input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 20px; height: 20px;
+  border-radius: 50%; background: var(--accent); cursor: pointer;
+  border: 2px solid var(--bg);
+}
+.slider-row input[type=range]::-moz-range-thumb {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--accent); cursor: pointer; border: 2px solid var(--bg);
+}
+.slider-val {
+  font-family: var(--font-heading); font-size: 1.4rem;
+  font-weight: 800; color: var(--accent-bright); min-width: 2.5rem;
+  text-align: right;
+}
+.cost-canvas { width: 100%; height: 320px; display: block; }
+.cost-legend {
+  display: flex; gap: 1.5rem; margin-top: 0.8rem; flex-wrap: wrap;
+}
+.cost-legend-item {
+  display: flex; align-items: center; gap: 0.4rem;
+  font-size: 0.78rem; color: var(--fg-dim);
+}
+.cost-legend-swatch {
+  width: 12px; height: 3px; border-radius: 1px;
+}
+.inflection-callout {
+  margin-top: 1rem; padding: 0.8rem 1rem;
+  background: rgba(212,168,67,0.08); border-radius: 6px;
+  border: 1px solid var(--accent-dim);
+  font-size: 0.88rem; color: var(--fg-dim); line-height: 1.45;
+  opacity: 0; transition: opacity 0.4s;
+}
+.inflection-callout.visible { opacity: 1; }
+
+/* ─── Data Section ─── */
+.data-section {
+  max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem;
+}
+.data-section h3 {
+  font-family: var(--font-heading); font-size: 1.2rem;
+  font-weight: 700; color: var(--fg); margin-bottom: 0.3rem;
+}
+.data-section .caption {
+  font-size: 0.82rem; color: var(--muted); margin-bottom: 1.2rem;
+}
+
+/* Animated Chart */
+.anim-chart-wrap {
+  background: var(--bg-card); border-radius: var(--radius);
+  border: 1px solid var(--border); padding: 1.2rem; margin-bottom: 2rem;
+  overflow: hidden;
+}
+.anim-chart-svg { width: 100%; height: auto; }
+.anim-chart-svg text { font-family: var(--font-heading); }
+
+/* Comparison Table */
+.comp-table-wrap {
+  background: var(--bg-card); border-radius: var(--radius);
+  border: 1px solid var(--border); padding: 1.2rem; overflow-x: auto;
+}
+.comp-table {
+  width: 100%; border-collapse: collapse; font-size: 0.85rem;
+}
+.comp-table th {
+  font-family: var(--font-heading); font-size: 0.72rem;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--accent); text-align: left; padding: 0.5rem 0.7rem;
+  border-bottom: 1px solid var(--border); font-weight: 700;
+  cursor: pointer; user-select: none; white-space: nowrap;
+}
+.comp-table th:hover { color: var(--accent-bright); }
+.comp-table td {
+  padding: 0.5rem 0.7rem; border-bottom: 1px solid rgba(42,41,38,0.5);
+  color: var(--fg-dim); vertical-align: top;
+}
+.comp-table tr:hover td { color: var(--fg); background: rgba(212,168,67,0.03); }
+
+/* ─── Concept Map ─── */
+.concept-map-wrap {
+  background: var(--bg-card); border-radius: var(--radius);
+  border: 1px solid var(--border); padding: 1rem; margin-bottom: 1.5rem;
+}
+.concept-map-wrap h3 {
+  font-family: var(--font-heading); font-size: 0.75rem;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--accent); margin-bottom: 0.6rem; font-weight: 700;
+}
+.concept-map-svg { width: 100%; height: auto; }
+.concept-map-svg text { font-family: var(--font-heading); }
+
+/* ─── Footer ─── */
+footer {
+  max-width: 900px; margin: 3rem auto 0; padding: 2rem 1.5rem;
+  border-top: 1px solid var(--border);
+}
+footer .citations { font-size: 0.78rem; color: var(--muted); line-height: 1.55; margin-bottom: 1.5rem; }
+footer .citations strong { color: var(--fg-dim); }
+footer .footer-links { display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; }
+footer a {
+  color: var(--accent); text-decoration: none; font-size: 0.82rem;
+  font-family: var(--font-heading); font-weight: 600;
+}
+footer a:hover { text-decoration: underline; }
+.back-to-top {
+  background: none; border: 1px solid var(--border); color: var(--fg-dim);
+  padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer;
+  font-family: var(--font-heading); font-size: 0.78rem;
+  transition: color 0.2s, border-color 0.2s;
+}
+.back-to-top:hover { color: var(--accent); border-color: var(--accent-dim); }
+
+/* ─── Drawer Overlay ─── */
+.drawer-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  z-index: 998; opacity: 0; pointer-events: none;
+  transition: opacity 0.3s;
+}
+.drawer-overlay.open { opacity: 1; pointer-events: all; }
+
+/* ─── Reduced Motion ─── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+  .beat-section { opacity: 1; transform: none; }
+  .inflection-callout { opacity: 1; }
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 880px) {
+  .content-grid { grid-template-columns: 1fr; }
+  .sidebar {
+    position: fixed; right: 0; top: 0; height: 100vh;
+    width: 320px; max-width: 85vw; z-index: 999;
+    background: var(--bg-elevated); border-left: 1px solid var(--border);
+    transform: translateX(100%); transition: transform 0.3s ease;
+    overflow-y: auto; padding: 4rem 1rem 1rem;
+  }
+  .sidebar.open { transform: translateX(0); }
+  .hamburger { display: block; }
+  .spectrum-box { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  body { font-size: 16px; }
+  .hero { padding: 2.5rem 1rem 1.5rem; }
+  .content-grid { padding: 1.5rem 1rem; }
+  .centerpiece { padding: 1.5rem 1rem; }
+  .data-section { padding: 1.5rem 1rem; }
+}
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+
+<header id="topbar">
+  <div id="topbar-left">
+    <a class="home-link" href="https://iggym.github.io/scaling-ai-systems/">Home</a>
+    <span class="breadcrumb">/ <span>Three-Team Trap</span></span>
+  </div>
+  <div id="topbar-right">
+    <span class="reading-time">7 min read</span>
+    <button class="hamburger" aria-label="Toggle sidebar" id="hamburgerBtn">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<main>
+
+<section class="hero">
+  <h1 class="hero-title">The <span class="accent">Three-Team</span> Trap</h1>
+  <p class="hero-sub">When your single AI owner becomes the bottleneck — and the reorg costs more than the model.</p>
+</section>
+
+<section class="spectrum">
+  <div class="spectrum-box">
+    <div class="spectrum-side before">
+      <div class="spectrum-label">Common Assumption</div>
+      <p class="spectrum-text">You need 10 AI-touching teams before a platform team pays for itself. Until then, let each team own their stack.</p>
+    </div>
+    <div class="spectrum-side after">
+      <div class="spectrum-label">Actual Inflection</div>
+      <p class="spectrum-text">The crossover hits at 3.7 teams. By four teams, the platform model is already cheaper. The duplicated cost is running right now.</p>
+    </div>
+  </div>
+</section>
+
+<div class="content-grid">
+
+<article class="main-col">
+
+<p><span class="marker marker-before"><svg viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.5"/></svg>Before scale</span> Klarna's AI assistant handled 2.3 million conversations in a single month. Work that previously required 700 full-time agents. By early 2025, headcount had dropped from roughly 5,000 to 3,000. On paper, a machine-learning fairy tale.</p>
+
+<p>Inside the org, a different signal. The 15-person AI team serving five product verticals had a six-week backlog for any new model integration. Product teams stopped waiting. They built their own — separate API keys, separate prompt libraries, separate evaluation rigs, separate guardrail configs. Five verticals. Five independent AI stacks. Zero shared infrastructure. Each stack cost something. Nobody was counting the total.</p>
+
+<div class="beat-section" id="beat1" data-beat="1">
+  <div class="beat-label">Perspective Shift [BEAT 1]</div>
+  <p><span class="beat-before">"We need more AI engineers"</span> <span class="beat-arrow">→</span> <span class="beat-after">"We need fewer people touching models directly"</span></p>
+  <p style="margin-top:0.6rem;font-size:0.92rem;color:var(--fg-dim);">The bottleneck wasn't headcount. It was access. One team owning all model decisions created a single throttle that five product teams competed for simultaneously. Adding engineers to that team wouldn't clear the queue — the queue existed because the org structure required every AI decision to route through one group, not because the group was small. More people at the bottleneck doesn't widen the pipe. It adds more people standing at the same pipe.</p>
+</div>
+
+<h2>Platform Inflection</h2>
+
+<p>The platform-team inflection doesn't arrive when you have too many AI projects. It arrives when duplicated AI infrastructure across teams costs more than a platform team would — and that crossover happens at three AI-touching product teams, not the ten most leaders assume.</p>
+
+<p>The same org chart that gave you speed at two teams generates invisible cost at four.</p>
+
+<h2>Where Money Goes</h2>
+
+<p>Reconstruct the per-team annual cost of running an independent AI stack. Real numbers, from the tooling market in early 2025:</p>
+
+<ul>
+  <li>Prompt management and versioning: $15,000</li>
+  <li>Evaluation pipeline (automated + human review): $20,000</li>
+  <li>LLM observability and tracing: $15,000</li>
+  <li>Guardrails and compliance layer: $10,000</li>
+  <li>Engineer time on AI infra maintenance (0.25 FTE @ $160K): $40,000</li>
+</ul>
+
+<p>One team, one stack: roughly $100,000 per year. Reasonable. Manageable. Nobody flags it.</p>
+
+<p>Now run five teams with independent stacks. Same $100K each. $500K total. Still looks fine — each budget owner sees their own $100K and approves it without escalation.</p>
+
+<p>A platform team that builds this infrastructure once: two platform engineers at $160K each ($320K), plus $50K in shared tooling licenses. Total: $370,000 per year. Serves all five teams.</p>
+
+<div class="pull-quote" id="pq1">
+  The break-even: $370K ÷ $100K = 3.7 teams. At four AI-touching product teams, the platform team is already cheaper.
+  <div class="share-icons">
+    <a href="#" class="share-x" aria-label="Share on X" data-quote="The break-even: $370K ÷ $100K = 3.7 teams. At four AI-touching product teams, the platform team is already cheaper."><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+    <a href="#" class="share-li" aria-label="Share on LinkedIn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.438-.525-2.156-1.613-2.156-1.178 0-1.789.895-1.789 2.156v5.569H10.94V9.012h3.554v1.439h.04c.543-.978 1.527-1.639 2.864-1.639 2.265 0 3.593 1.476 3.593 4.099v6.541zM6.554 7.678a2.076 2.076 0 11-4.153 0 2.076 2.076 0 014.153 0zM6.735 20.452H2.623V9.012h4.112v11.44z"/></svg></a>
+  </div>
+</div>
+
+<p>At five, you're burning $130K per year in pure duplication — money that buys nothing, ships nothing, and accelerates nothing. At ten teams, $630K. At Klarna's five verticals, the duplicated infra alone was likely $130K annually, on top of the six-week queue cost measured in delayed shipments and lost revenue.</p>
+
+<div class="beat-section" id="beat2" data-beat="2">
+  <div class="beat-label">Perspective Shift [BEAT 2]</div>
+  <p><span class="beat-before">"Each team owns their AI integration"</span> <span class="beat-arrow">→</span> <span class="beat-after">"Each team owns their integration AND the duplicated infra nobody can see"</span></p>
+  <p style="margin-top:0.6rem;font-size:0.92rem;color:var(--fg-dim);">None of this appears in any single budget line. It's distributed across five team budgets, each of which looks reasonable in isolation. Nobody sees the total because nobody owns the total. This is the structural trap: the cost of decentralization scales linearly with the number of teams, but each team's slice looks small enough to approve without a second thought. The budget system is built to hide this.</p>
+</div>
+
+<div class="pull-quote" id="pq2">
+  At five teams, you're burning $130K per year in pure duplication. At ten, $630K. None of it appears in any single budget line.
+  <div class="share-icons">
+    <a href="#" class="share-x" aria-label="Share on X" data-quote="At five teams, you're burning $130K/year in pure duplication. At ten, $630K. None of it appears in any single budget line."><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+    <a href="#" class="share-li" aria-label="Share on LinkedIn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.438-.525-2.156-1.613-2.156-1.178 0-1.789.895-1.789 2.156v5.569H10.94V9.012h3.554v1.439h.04c.543-.978 1.527-1.639 2.864-1.639 2.265 0 3.593 1.476 3.593 4.099v6.541zM6.554 7.678a2.076 2.076 0 11-4.153 0 2.076 2.076 0 014.153 0zM6.735 20.452H2.623V9.012h4.112v11.44z"/></svg></a>
+  </div>
+</div>
+
+<h2>Mandate Accelerant</h2>
+
+<p><span class="marker marker-after"><svg viewBox="0 0 14 14" fill="none"><polygon points="7,1 13,13 1,13" fill="currentColor"/></svg>After scale</span> Shopify hit the same pattern from a different angle. In February 2025, CEO Tobi Lütke sent an internal memo requiring teams to prove they'd tried AI before requesting new headcount. The intent: force adoption across the org. The org consequence: without a platform team providing shared AI infrastructure, product teams built their own integrations in isolation. Different models for similar tasks. No shared evaluation harness. No unified cost tracking. No cross-team learning about what prompts actually worked.</p>
+
+<p>Lütke called it "AI-first." Inside the engineering org, it was shadow AI — functional, ungoverned, each instance invisible to anyone outside the team that built it. Each team's integration worked well enough to satisfy the mandate. None of them worked well enough to be maintainable at scale.</p>
+
+<p>The mandate accelerated usage. It also accelerated fragmentation. At this org scale, those are the same event. Every team that spins up its own LLM integration creates a new cost center that nobody is tracking centrally, and a new failure surface that nobody is monitoring centrally. The mandate worked. The structure didn't.</p>
+
+<h2>Your Counterargument</h2>
+
+<p>"Centralized platform teams slow teams down. I've seen this — a platform team that becomes a gatekeeper, and now product teams wait three months for API access. Aren't we just recreating the bottleneck?"</p>
+
+<p>This is the strongest objection, and it's half-right. The platform team as gatekeeper reproduces the original problem with different branding. You've swapped "the AI team" for "the platform team" and kept the queue.</p>
+
+<p>The model that works is the platform team as internal vendor, not approval layer. They own the shared infrastructure — model routing, cost allocation, evaluation pipelines, guardrails — but product teams own their prompts, their logic, their deployment cadence. The platform team provides the road. Product teams choose their speed and destination. Gatekeeping is a failure mode of the platform-team pattern, not an inevitable property of it.</p>
+
+<p>The distinction matters operationally. A gatekeeper platform team says: "You may use GPT-4 if we approve your use case." A vendor platform team says: "Here's the routing layer, here's the cost tracker, here's the evaluation harness — pick your model and ship." The first creates queues. The second eliminates duplicated work without creating any. If your platform team is generating approval tickets, you've built the wrong kind.</p>
+
+<h2>What to Do</h2>
+
+<p><strong>1. Count your AI-touching teams today.</strong> Not "AI teams" — teams that have called an LLM API in the last 90 days. If that number is three or more, you're already past the cost inflection. The duplicated spend is running right now. The platform-team proposal should start this week, not next quarter. Every week of delay is $2,500+ in duplicated cost at five teams.</p>
+
+<p><strong>2. Build the shared layer first.</strong> Model routing, cost allocation, and evaluation are infrastructure — ship them like infrastructure, with SLAs and onboarding docs and a runbook, not policy documents and approval forms. Governance (model-access policies, compliance review) comes after teams have a reason to use the platform. If you lead with governance, teams will route around you, and you'll have a platform team with no users.</p>
+
+<p><strong>3. Budget 6–9 months of dual operation explicitly.</strong> During the reorg, both the old structure (teams building independently) and the new structure (platform team serving them) will run simultaneously. This is deadweight cost. It will feel like the reorg is making things more expensive before it makes them cheaper. That's because it is, temporarily. If you don't budget for this phase openly, you'll see the duplicate spend, panic, and abandon the reorg halfway through — leaving yourself with the worst of both structures and the credibility cost of a failed reorg.</p>
+
+<div class="aside-block">
+  The reason the 3.7-team inflection is so hard to see in real organizations is that each team's independent AI spend is categorized differently — one under "tooling," another under "cloud infrastructure," a third under "headcount." No single line item crosses the threshold that would trigger escalation. The budget format reinforces the structural trap.
+</div>
+
+<div class="cta-block">
+  <p><strong>24-Hour Action:</strong> Open your organization chart. Find every team that has called an LLM API in the last 90 days. Count them. If the number is three or more, draft the platform-team proposal before tomorrow's standup — not because it's urgent, but because the duplicated cost is already running and no single budget line will ever show it.</p>
+</div>
+
+</article>
+
+<aside class="sidebar" id="sidebar">
+
+<div class="sidebar-section" id="threeThings">
+  <h3>Three Things You Didn't Know You Needed</h3>
+  <div class="thing-item" data-thing="1">
+    <span class="thing-dot"></span>
+    <span>The bottleneck hits at 3 teams, not 10</span>
+  </div>
+  <div class="thing-item" data-thing="2">
+    <span class="thing-dot"></span>
+    <span>Shadow AI costs 2–3× what a platform team charges — but it's invisible</span>
+  </div>
+  <div class="thing-item" data-thing="3">
+    <span class="thing-dot"></span>
+    <span>The reorg has 6–9 months of dual-operation deadweight</span>
+  </div>
+</div>
+
+<div class="sidebar-section">
+  <h3>Recall Check</h3>
+  <p style="font-size:0.78rem;color:var(--muted);margin-bottom:0.6rem;">Tap a card to flip.</p>
+  <div class="recall-card" id="rc1">
+    <div class="recall-card-inner">
+      <div class="recall-face recall-front">Break-even point for a platform team?</div>
+      <div class="recall-face recall-back">3.7 AI-touching teams ($370K ÷ $100K)</div>
+    </div>
+  </div>
+  <div class="recall-card" id="rc2">
+    <div class="recall-card-inner">
+      <div class="recall-face recall-front">Per-team independent AI infra cost?</div>
+      <div class="recall-face recall-back">~$100K/year (tooling + 0.25 FTE)</div>
+    </div>
+  </div>
+  <div class="recall-card" id="rc3">
+    <div class="recall-card-inner">
+      <div class="recall-face recall-front">Waste at 5 teams without a platform?</div>
+      <div class="recall-face recall-back">$130K/year in pure duplication</div>
+    </div>
+  </div>
+</div>
+
+<div class="concept-map-wrap">
+  <h3>Related Scaling Dynamics</h3>
+  <svg class="concept-map-svg" viewBox="0 0 260 180" fill="none">
+    <line x1="130" y1="90" x2="40" y2="35" stroke="#2a2926" stroke-width="1.5"/>
+    <line x1="130" y1="90" x2="220" y2="35" stroke="#2a2926" stroke-width="1.5"/>
+    <line x1="130" y1="90" x2="50" y2="150" stroke="#2a2926" stroke-width="1.5"/>
+    <line x1="130" y1="90" x2="210" y2="150" stroke="#2a2926" stroke-width="1.5"/>
+    <circle cx="130" cy="90" r="22" fill="rgba(212,168,67,0.15)" stroke="#d4a843" stroke-width="1.5"/>
+    <text x="130" y="93" text-anchor="middle" fill="#e8e4dc" font-size="7" font-weight="600">ORG DESIGN</text>
+    <circle cx="40" cy="35" r="16" fill="rgba(74,158,122,0.1)" stroke="#4a9e7a" stroke-width="1"/>
+    <text x="40" y="38" text-anchor="middle" fill="#b5b0a6" font-size="5.5">COST</text>
+    <circle cx="220" cy="35" r="16" fill="rgba(74,158,122,0.1)" stroke="#4a9e7a" stroke-width="1"/>
+    <text x="220" y="38" text-anchor="middle" fill="#b5b0a6" font-size="5.5">ROUTING</text>
+    <circle cx="50" cy="150" r="16" fill="rgba(74,158,122,0.1)" stroke="#4a9e7a" stroke-width="1"/>
+    <text x="50" y="153" text-anchor="middle" fill="#b5b0a6" font-size="5.5">TECH DEBT</text>
+    <circle cx="210" cy="150" r="16" fill="rgba(74,158,122,0.1)" stroke="#4a9e7a" stroke-width="1"/>
+    <text x="210" y="153" text-anchor="middle" fill="#b5b0a6" font-size="5.5">RELIABILITY</text>
+  </svg>
+</div>
+
+</aside>
+</div>
+
+<!-- Centerpiece Widget -->
+<section class="centerpiece">
+  <div class="centerpiece-box">
+    <h3>Pull the Lever</h3>
+    <p class="caption">Drag team count to find where duplicated cost exceeds the platform team.</p>
+    <div class="slider-row">
+      <label for="teamSlider">AI-touching teams</label>
+      <input type="range" id="teamSlider" min="1" max="10" step="0.1" value="2">
+      <span class="slider-val" id="sliderVal">2</span>
+    </div>
+    <canvas id="costCanvas" class="cost-canvas" role="img" aria-label="Cost comparison chart showing independent vs platform team costs as team count changes"></canvas>
+    <div class="cost-legend">
+      <span class="cost-legend-item"><span class="cost-legend-swatch" style="background:var(--before-clr);"></span>Independent stacks</span>
+      <span class="cost-legend-item"><span class="cost-legend-swatch" style="background:var(--after-clr);"></span>Platform team</span>
+      <span class="cost-legend-item"><span class="cost-legend-swatch" style="background:var(--accent);"></span>Current position</span>
+    </div>
+    <div class="inflection-callout" id="inflectionMsg">
+      You've crossed the inflection point. At this team count, a platform team is cheaper than independent stacks. The duplicated cost is <strong id="wasteAmt">$0</strong>/year.
+    </div>
+  </div>
+</section>
+
+<!-- Data Storytelling -->
+<section class="data-section">
+  <h3>Cost Curves, Annotated</h3>
+  <p class="caption">Where independent-stack cost overtakes the platform team — and how fast the gap grows.</p>
+  <div class="anim-chart-wrap" id="animChartWrap">
+    <svg class="anim-chart-svg" viewBox="0 0 600 340" id="animChartSvg">
+      <!-- Grid -->
+      <line x1="60" y1="20" x2="60" y2="280" stroke="#2a2926" stroke-width="1"/>
+      <line x1="60" y1="280" x2="580" y2="280" stroke="#2a2926" stroke-width="1"/>
+      <!-- Y axis labels -->
+      <text x="55" y="280" text-anchor="end" fill="#6a655c" font-size="9">$0</text>
+      <text x="55" y="215" text-anchor="end" fill="#6a655c" font-size="9">$250K</text>
+      <text x="55" y="150" text-anchor="end" fill="#6a655c" font-size="9">$500K</text>
+      <text x="55" y="85" text-anchor="end" fill="#6a655c" font-size="9">$750K</text>
+      <text x="55" y="25" text-anchor="end" fill="#6a655c" font-size="9">$1M</text>
+      <!-- X axis labels -->
+      <text x="112" y="296" text-anchor="middle" fill="#6a655c" font-size="9">1</text>
+      <text x="164" y="296" text-anchor="middle" fill="#6a655c" font-size="9">2</text>
+      <text x="216" y="296" text-anchor="middle" fill="#6a655c" font-size="9">3</text>
+      <text x="268" y="296" text-anchor="middle" fill="#6a655c" font-size="9">4</text>
+      <text x="320" y="296" text-anchor="middle" fill="#6a655c" font-size="9">5</text>
+      <text x="372" y="296" text-anchor="middle" fill="#6a655c" font-size="9">6</text>
+      <text x="424" y="296" text-anchor="middle" fill="#6a655c" font-size="9">7</text>
+      <text x="476" y="296" text-anchor="middle" fill="#6a655c" font-size="9">8</text>
+      <text x="528" y="296" text-anchor="middle" fill="#6a655c" font-size="9">9</text>
+      <text x="580" y="296" text-anchor="middle" fill="#6a655c" font-size="9">10</text>
+      <text x="320" y="312" text-anchor="middle" fill="#6a655c" font-size="9">AI-touching teams</text>
+      <!-- Platform team line (flat at $370K) -->
+      <line x1="60" y1="184" x2="580" y2="184" stroke="#d45050" stroke-width="2" stroke-dasharray="6,3" class="chart-anim-line" style="stroke-dashoffset:600;"/>
+      <text x="585" y="188" fill="#d45050" font-size="8" font-weight="600">$370K</text>
+      <!-- Independent line ($100K per team) -->
+      <polyline points="60,280 112,254 164,228 216,202 268,176 320,150 372,124 424,98 476,72 528,46 580,20" fill="none" stroke="#4a9e7a" stroke-width="2" stroke-linecap="round" class="chart-anim-line" style="stroke-dashoffset:800;"/>
+      <!-- Inflection annotation -->
+      <circle cx="246" cy="184" r="5" fill="none" stroke="#d4a843" stroke-width="1.5" class="chart-anim-anno" style="opacity:0;"/>
+      <line x1="246" y1="184" x2="246" y2="310" stroke="#d4a843" stroke-width="1" stroke-dasharray="3,2" class="chart-anim-anno" style="opacity:0;"/>
+      <text x="246" y="324" text-anchor="middle" fill="#d4a843" font-size="8" font-weight="600" class="chart-anim-anno" style="opacity:0;">3.7 teams</text>
+      <text x="246" y="170" text-anchor="middle" fill="#d4a843" font-size="7" class="chart-anim-anno" style="opacity:0;">inflection</text>
+    </svg>
+  </div>
+
+  <h3>By the Numbers</h3>
+  <p class="caption">Real figures from the sourced cases — hover for detail, click headers to sort.</p>
+  <div class="comp-table-wrap">
+    <table class="comp-table" id="compTable">
+      <thead>
+        <tr>
+          <th data-col="0" data-type="string">Dimension</th>
+          <th data-col="1" data-type="string">Klarna (5 verticals)</th>
+          <th data-col="2" data-type="string">Shopify (mandate)</th>
+          <th data-col="3" data-type="string">Generic (3 teams)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>AI-touching teams</td><td>5</td><td>8+</td><td>3</td></tr>
+        <tr><td>Annual duplicated cost</td><td>~$130K</td><td>~$400K+</td><td>~$0 (break-even)</td></tr>
+        <tr><td>Key symptom</td><td>6-week queue</td><td>Shadow AI</td><td>Budget fragmentation</td></tr>
+        <tr><td>Trigger type</td><td>Organic growth</td><td>Policy mandate</td><td>Organic growth</td></tr>
+        <tr><td>Inflection status</td><td>Well past</td><td>Well past</td><td>Just hitting</td></tr>
+        <tr><td>Platform team ROI</td><td>Positive ($130K saved)</td><td>Strong positive</td><td>Marginal (break-even)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="citations">
+    <strong>Sources:</strong> Klarna AI assistant metrics and headcount data reported by CNBC and Bloomberg, Feb–Mar 2025. Shopify CEO Tobi Lütke internal memo reported by The Verge and Fortune, Feb 2025. Per-team AI infrastructure cost reconstruction based on market pricing from LangSmith, Arize, Humanloop, and PromptLayer, Q1 2025. Platform engineer compensation from Glassdoor/Levels.fy, 2024–2025.
+  </div>
+  <div class="footer-links">
+    <a href="https://iggym.github.io/scaling-ai-systems/">Home</a>
+    <button class="back-to-top" id="backToTop">↑ Top</button>
+  </div>
+</footer>
+
+<div class="drawer-overlay" id="drawerOverlay"></div>
+
+<script>
+(function() {
+  'use strict';
+  const PAGE_URL = 'https://iggym.github.io/scaling-ai-systems/articles/three-team-trap.html';
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ─── Progress Bar ───
+  const progressEl = document.getElementById('progress');
+  function updateProgress() {
+    const h = document.documentElement.scrollHeight - window.innerHeight;
+    const pct = h > 0 ? (window.scrollY / h) * 100 : 0;
+    progressEl.style.width = Math.min(pct, 100) + '%';
+  }
+  window.addEventListener('scroll', updateProgress, { passive: true });
+
+  // ─── Back to Top ───
+  document.getElementById('backToTop').addEventListener('click', function() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  // ─── Mobile Hamburger ───
+  const hamburger = document.getElementById('hamburgerBtn');
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('drawerOverlay');
+  function toggleDrawer() {
+    const isOpen = sidebar.classList.toggle('open');
+    hamburger.classList.toggle('open', isOpen);
+    overlay.classList.toggle('open', isOpen);
+  }
+  hamburger.addEventListener('click', toggleDrawer);
+  overlay.addEventListener('click', toggleDrawer);
+
+  // ─── Share Links ───
+  document.querySelectorAll('.share-x').forEach(function(a) {
+    const quote = a.getAttribute('data-quote') || '';
+    a.href = 'https://x.com/intent/tweet?text=' + encodeURIComponent(quote + ' — ' + PAGE_URL);
+    a.target = '_blank'; a.rel = 'noopener noreferrer';
+  });
+  document.querySelectorAll('.share-li').forEach(function(a) {
+    a.href = 'https://www.linkedin.com/sharing/share-offsite/?url=' + encodeURIComponent(PAGE_URL);
+    a.target = '_blank'; a.rel = 'noopener noreferrer';
+  });
+
+  // ─── Scroll Reveals (Beat Sections) ───
+  const beatSections = document.querySelectorAll('.beat-section');
+  if (!reducedMotion) {
+    const beatObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting) {
+          e.target.classList.add('revealed');
+          beatObserver.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.25 });
+    beatSections.forEach(function(s) { beatObserver.observe(s); });
+  } else {
+    beatSections.forEach(function(s) { s.classList.add('revealed'); });
+  }
+
+  // ─── Three Things Tracker ───
+  const thingItems = document.querySelectorAll('.thing-item');
+  const thingTriggers = [
+    document.querySelector('.spectrum'),   // Thing 1 unlocks at spectrum (Bold Reframe)
+    document.getElementById('beat2'),       // Thing 2 unlocks at Beat 2
+    document.querySelector('.cta-block')    // Thing 3 unlocks at CTA
+  ];
+  thingTriggers.forEach(function(trigger, i) {
+    if (!trigger) return;
+    const observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting) {
+          thingItems[i].classList.add('unlocked');
+          observer.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.3 });
+    observer.observe(trigger);
+  });
+
+  // ─── Recall Cards ───
+  document.querySelectorAll('.recall-card').forEach(function(card) {
+    card.addEventListener('click', function() {
+      card.classList.toggle('flipped');
+    });
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('role', 'button');
+    card.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.classList.toggle('flipped'); }
+    });
+  });
+
+  // ─── Centerpiece: Cost Widget ───
+  const canvas = document.getElementById('costCanvas');
+  const ctx = canvas.getContext('2d');
+  const slider = document.getElementById('teamSlider');
+  const sliderVal = document.getElementById('sliderVal');
+  const inflectionMsg = document.getElementById('inflectionMsg');
+  const wasteAmt = document.getElementById('wasteAmt');
+  const dpr = window.devicePixelRatio || 1;
+
+  function resizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  resizeCanvas();
+  window.addEventListener('resize', function() { resizeCanvas(); drawChart(parseFloat(slider.value)); });
+
+  function drawChart(numTeams) {
+    const W = canvas.width / dpr;
+    const H = canvas.height / dpr;
+    const padL = 55, padR = 20, padT = 20, padB = 40;
+    const chartW = W - padL - padR;
+    const chartH = H - padT - padB;
+    const maxCost = 1100000;
+    const maxTeams = 10;
+
+    ctx.clearRect(0, 0, W, H);
+
+    function xP(n) { return padL + (n / maxTeams) * chartW; }
+    function yP(c) { return padT + chartH - (c / maxCost) * chartH; }
+
+    // Grid
+    ctx.strokeStyle = '#2a2926'; ctx.lineWidth = 0.5;
+    for (var i = 0; i <= 4; i++) {
+      var y = padT + (chartH / 4) * i;
+      ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+    }
+
+    // Y labels
+    ctx.fillStyle = '#6a655c'; ctx.font = '10px Space Grotesk, sans-serif'; ctx.textAlign = 'right';
+    var yLabels = ['$0', '$250K', '$500K', '$750K', '$1M'];
+    for (var i = 0; i <= 4; i++) {
+      ctx.fillText(yLabels[i], padL - 6, padT + (chartH / 4) * i + 3);
+    }
+
+    // X labels
+    ctx.textAlign = 'center';
+    for (var n = 1; n <= 10; n++) {
+      ctx.fillText(n, xP(n), H - padB + 16);
+    }
+    ctx.fillText('teams', W / 2, H - 4);
+
+    // Independent cost line: $100K * N
+    ctx.strokeStyle = '#4a9e7a'; ctx.lineWidth = 2; ctx.beginPath();
+    for (var n = 1; n <= maxTeams; n += 0.1) {
+      var px = xP(n), py = yP(100000 * n);
+      n === 1 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+
+    // Platform team line: $370K flat
+    ctx.strokeStyle = '#d45050'; ctx.lineWidth = 2; ctx.setLineDash([6, 4]); ctx.beginPath();
+    ctx.moveTo(xP(1), yP(370000)); ctx.lineTo(xP(maxTeams), yP(370000)); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Inflection point marker
+    ctx.fillStyle = 'rgba(212,168,67,0.15)';
+    ctx.beginPath(); ctx.arc(xP(3.7), yP(370000), 6, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#d4a843'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(xP(3.7), yP(370000), 6, 0, Math.PI * 2); ctx.stroke();
+
+    // Current position vertical line
+    var cx = xP(numTeams);
+    ctx.strokeStyle = 'rgba(212,168,67,0.5)'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(cx, padT); ctx.lineTo(cx, padT + chartH); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Current cost dots
+    var indepCost = 100000 * numTeams;
+    var platCost = 370000;
+    // Independent dot
+    ctx.fillStyle = '#4a9e7a'; ctx.beginPath();
+    ctx.arc(cx, yP(indepCost), 5, 0, Math.PI * 2); ctx.fill();
+    // Platform dot
+    ctx.fillStyle = '#d45050'; ctx.beginPath();
+    ctx.arc(cx, yP(platCost), 5, 0, Math.PI * 2); ctx.fill();
+
+    // Cost labels at current position
+    ctx.font = '11px Space Grotesk, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillStyle = '#4a9e7a';
+    ctx.fillText('$' + Math.round(indepCost / 1000) + 'K', cx + 10, yP(indepCost) + 4);
+    ctx.fillStyle = '#d45050';
+    ctx.fillText('$370K', cx + 10, yP(platCost) + 4);
+
+    // Inflection callout
+    var waste = Math.max(0, indepCost - platCost);
+    if (numTeams >= 3.7) {
+      inflectionMsg.classList.add('visible');
+      wasteAmt.textContent = '$' + Math.round(waste / 1000) + 'K';
+    } else {
+      inflectionMsg.classList.remove('visible');
+    }
+  }
+
+  slider.addEventListener('input', function() {
+    var val = parseFloat(slider.value);
+    sliderVal.textContent = val % 1 === 0 ? val : val.toFixed(1);
+    drawChart(val);
+  });
+  drawChart(parseFloat(slider.value));
+
+  // ─── Animated Chart (scroll-triggered) ───
+  var animChartWrap = document.getElementById('animChartWrap');
+  var animLines = animChartWrap.querySelectorAll('.chart-anim-line');
+  var animAnnos = animChartWrap.querySelectorAll('.chart-anim-anno');
+  var chartAnimated = false;
+
+  function animateChart() {
+    if (chartAnimated) return;
+    chartAnimated = true;
+    if (reducedMotion) {
+      animLines.forEach(function(l) { l.style.strokeDashoffset = '0'; });
+      animAnnos.forEach(function(a) { a.style.opacity = '1'; });
+      return;
+    }
+    animLines.forEach(function(l, i) {
+      var len = i === 0 ? 600 : 800;
+      l.style.transition = 'stroke-dashoffset 1.2s ease ' + (i * 0.3) + 's';
+      l.style.strokeDashoffset = '0';
+    });
+    animAnnos.forEach(function(a, i) {
+      a.style.transition = 'opacity 0.5s ease 1.4s';
+      a.style.opacity = '1';
+    });
+  }
+
+  var chartObserver = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) { if (e.isIntersecting) { animateChart(); chartObserver.unobserve(e.target); } });
+  }, { threshold: 0.3 });
+  chartObserver.observe(animChartWrap);
+
+  // ─── Comparison Table Sort ───
+  var compTable = document.getElementById('compTable');
+  compTable.querySelectorAll('th').forEach(function(th) {
+    th.addEventListener('click', function() {
+      var col = parseInt(th.getAttribute('data-col'));
+      var tbody = compTable.querySelector('tbody');
+      var rows = Array.from(tbody.querySelectorAll('tr'));
+      var asc = th.getAttribute('data-sort') !== 'asc';
+      compTable.querySelectorAll('th').forEach(function(h) { h.removeAttribute('data-sort'); });
+      th.setAttribute('data-sort', asc ? 'asc' : 'desc');
+      rows.sort(function(a, b) {
+        var aVal = a.children[col].textContent.trim();
+        var bVal = b.children[col].textContent.trim();
+        return asc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      });
+      rows.forEach(function(r) { tbody.appendChild(r); });
+    });
+  });
+
+})();
+</script>
+</body>
+</html>

@@ -46,5 +46,31 @@
   "reading_time_minutes": 7,
   "pinned": false,
   "research_window": "2025-01-07 to 2025-02-18"
+}, {
+  "id": "1019",
+  "slug": "ownership-void-org-design-ai-scale",
+  "title": "The Ownership Void",
+  "hook": "Org design for AI systems fails when treated as a tooling problem rather than an authority boundary problem.",
+  "path": "articles/ownership-void-org-design-ai-scale.html",
+  "date": "2026-03-14",
+  "status": "published",
+  "format": "case-study",
+  "tags": ["org-design", "scaling", "governance", "infrastructure"],
+  "reading_time_minutes": 4,
+  "pinned": false,
+  "research_window": "2026-02-14 to 2026-03-14"
+}, {
+  "id": "0417",
+  "slug": "leverage-lost",
+  "title": "Leverage Lost",
+  "hook": "AI vendor lock-in isn't a contract trap; it's an architectural one. Your prompts are fused to a single latent space.",
+  "path": "articles/leverage-lost.html",
+  "date": "2026-04-17",
+  "status": "published",
+  "format": "case-study",
+  "tags": ["vendor-lock-in", "ai-economics", "infrastructure-migration", "scale"],
+  "reading_time_minutes": 6,
+  "pinned": false,
+  "research_window": "2026-03-20 to 2026-04-17"
 }]
 }

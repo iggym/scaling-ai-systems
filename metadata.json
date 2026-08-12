@@ -72,5 +72,18 @@
   "reading_time_minutes": 6,
   "pinned": false,
   "research_window": "2026-03-20 to 2026-04-17"
+},{
+  "id": "8472",
+  "slug": "the-sandbox-lie",
+  "title": "The Sandbox Lie",
+  "hook": "Pilot reliability is a structural illusion. The failures that destroy AI systems at scale do not exist in a sandbox—they require the permission scope and volume of production to physically manifest.",
+  "path": "articles/the-sandbox-lie.html",
+  "date": "2026-05-20",
+  "status": "published",
+  "format": "case-study",
+  "tags": ["post-mvp-reliability", "ai-infrastructure", "agentic-loops"],
+  "reading_time_minutes": 6,
+  "pinned": false,
+  "research_window": "2026-04-15 to 2026-05-20"
 }]
 }

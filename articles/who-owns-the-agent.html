@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Who Owns the Agent? | Scaling AI Systems</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1115;
+    --surface: #181b22;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --accent-glow: #0ea5e9;
+    --warn: #f43f5e;
+    --success: #10b981;
+    --grid-line: #2d3341;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+  #progress {
+    position: fixed; top: 0; left: 0; height: 3px; width: 0%;
+    background: var(--accent); z-index: 1000; transition: width 0.1s linear;
+  }
+  #topbar {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(15, 17, 21, 0.8);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--grid-line);
+    padding: 1rem 2rem;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .nav-left { display: flex; gap: 1.5rem; align-items: center; font-size: 0.9rem; }
+  .nav-left a { color: var(--muted); text-decoration: none; font-weight: 600; }
+  .nav-left a:hover { color: var(--accent); }
+  .breadcrumb { color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; }
+  .reading-time { color: var(--accent); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; }
+  .hamburger { display: none; background: none; border: none; color: var(--text); font-size: 1.5rem; cursor: pointer; }
+  
+  .layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    max-width: 1400px;
+    margin: 0 auto;
+    gap: 4rem;
+    padding: 2rem;
+  }
+  .sidebar { position: sticky; top: 100px; height: fit-content; }
+  
+  @media (max-width: 880px) {
+    .layout { grid-template-columns: 1fr; gap: 2rem; padding: 1rem; }
+    .sidebar { position: fixed; top: 70px; left: -100%; width: 80%; height: 100vh; background: var(--surface); z-index: 99; transition: left 0.3s; padding: 2rem; border-right: 1px solid var(--grid-line); }
+    .sidebar.open { left: 0; }
+    .hamburger { display: block; }
+    .nav-left.desktop { display: none; }
+  }
+
+  main { max-width: 720px; }
+  h1 { font-size: clamp(2.5rem, 5vw, 4rem); line-height: 1.1; font-weight: 800; margin-bottom: 2rem; color: #fff; }
+  h2 { font-size: 2rem; font-weight: 800; color: #fff; margin: 4rem 0 1.5rem; border-left: 4px solid var(--accent); padding-left: 1rem; }
+  p { margin-bottom: 1.5rem; font-size: 1.15rem; color: var(--text); }
+  strong { color: #fff; font-weight: 700; }
+  .muted { color: var(--muted); }
+  .lead { font-size: 1.3rem; color: var(--muted); font-weight: 400; }
+
+  .spectrum {
+    background: linear-gradient(90deg, var(--surface) 0%, rgba(56, 189, 248, 0.1) 100%);
+    border: 1px solid var(--accent);
+    padding: 2rem;
+    border-radius: 12px;
+    margin: 3rem 0;
+    font-size: 1.5rem;
+    font-weight: 800;
+    line-height: 1.4;
+    color: #fff;
+  }
+
+  .pull-quote {
+    border-left: 4px solid var(--warn);
+    padding: 1.5rem 2rem;
+    margin: 3rem 0;
+    background: rgba(244, 63, 94, 0.05);
+    border-radius: 4px;
+    position: relative;
+  }
+  .pull-quote p { font-size: 1.4rem; font-weight: 600; color: #fff; margin-bottom: 1rem; font-style: italic; }
+  .share-row { display: flex; gap: 1rem; }
+  .share-btn {
+    background: var(--surface); border: 1px solid var(--grid-line);
+    color: var(--muted); padding: 0.5rem 1rem; border-radius: 6px;
+    text-decoration: none; font-size: 0.85rem; font-weight: 600;
+    display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s;
+  }
+  .share-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+  .widget {
+    background: var(--surface); border: 1px solid var(--grid-line);
+    padding: 2rem; border-radius: 16px; margin: 3rem 0;
+  }
+  .widget-title { font-family: 'JetBrains Mono', monospace; color: var(--accent); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1rem; }
+  
+  #scope-lever { width: 100%; margin: 2rem 0; accent-color: var(--accent); }
+  .cost-display {
+    display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace;
+    font-size: 1.2rem; font-weight: 700; color: var(--warn);
+  }
+  .curve-container { height: 200px; background: rgba(0,0,0,0.2); border-radius: 8px; position: relative; overflow: hidden; border: 1px solid var(--grid-line); }
+
+  figure { margin: 3rem 0; }
+  figcaption {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;
+    color: var(--muted); margin-top: 1rem; font-style: italic;
+  }
+
+  .reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); }
+  .reveal.revealed { opacity: 1; transform: translateY(0); }
+
+  .recall-card {
+    perspective: 1000px; height: 150px; margin: 2rem 0; cursor: pointer;
+  }
+  .card-inner {
+    position: relative; width: 100%; height: 100%;
+    transition: transform 0.6s; transform-style: preserve-3d;
+  }
+  .recall-card.flipped .card-inner { transform: rotateY(180deg); }
+  .card-face {
+    position: absolute; width: 100%; height: 100%; backface-visibility: hidden;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface); border: 1px solid var(--grid-line); border-radius: 12px;
+    padding: 1.5rem; text-align: center; font-weight: 600;
+  }
+  .card-back { transform: rotateY(180deg); background: var(--accent); color: #000; border-color: var(--accent); }
+
+  .tracker {
+    position: sticky; top: 120px;
+    display: flex; flex-direction: column; gap: 1rem;
+  }
+  .tracker-item {
+    padding: 1rem; background: var(--surface); border: 1px solid var(--grid-line);
+    border-radius: 8px; font-size: 0.85rem; opacity: 0.4; transition: all 0.4s;
+  }
+  .tracker-item.unlocked { opacity: 1; border-color: var(--success); box-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
+  .tracker-label { font-family: 'JetBrains Mono', monospace; color: var(--success); font-size: 0.7rem; text-transform: uppercase; display: block; margin-bottom: 0.5rem; }
+
+  table { width: 100%; border-collapse: collapse; margin: 2rem 0; font-size: 0.95rem; }
+  th { text-align: left; padding: 1rem; background: var(--surface); color: var(--accent); border-bottom: 2px solid var(--grid-line); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; }
+  td { padding: 1rem; border-bottom: 1px solid var(--grid-line); }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .beat-marker {
+    display: inline-block; background: var(--warn); color: #fff; font-family: 'JetBrains Mono', monospace;
+    padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; margin-bottom: 1rem; letter-spacing: 0.05em;
+  }
+
+  footer { border-top: 1px solid var(--grid-line); padding: 4rem 2rem; text-align: center; margin-top: 6rem; color: var(--muted); font-size: 0.9rem; }
+  footer a { color: var(--accent); text-decoration: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+    .reveal { opacity: 1; transform: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+
+<header id="topbar">
+  <div class="nav-left desktop">
+    <a href="https://iggym.github.io/scaling-ai-systems/">Home</a>
+    <span class="breadcrumb">/ case-studies / who-owns-the-agent</span>
+  </div>
+  <div class="reading-time">7 MIN READ</div>
+  <button class="hamburger" onclick="document.querySelector('.sidebar').classList.toggle('open')">&#9776;</button>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="nav-left mobile" style="flex-direction: column; gap: 2rem; margin-bottom: 3rem;">
+      <a href="https://iggym.github.io/scaling-ai-systems/">Home</a>
+    </div>
+    <div class="tracker">
+      <div class="tracker-label">Perspective Shifts</div>
+      <div class="tracker-item" id="tracker-1">The $200M Walk-Back</div>
+      <div class="tracker-item" id="tracker-2">The 62% Orchestration Trap</div>
+      <div class="tracker-item" id="tracker-3">The Shopify Headcount Filter</div>
+    </div>
+  </aside>
+
+  <main>
+    <h1>Who Owns the Agent?</h1>
+    <p class="lead">In early 2024, Klarna announced its OpenAI-powered assistant had handled 2.3 million customer conversations in a single month. The company claimed the system did the equivalent work of 700 full-time agents, projecting a $40 million reduction in support costs.</p>
+    
+    <p>Engineering leaders globally copied the slide deck. The premise was simple: deploy the agent, retire the headcount.</p>
+    <p>Fourteen months later, the premise broke.</p>
+    <p>In May 2025, Reuters and Bloomberg reported Klarna was walking back its aggressive AI staffing cuts. Customer satisfaction had degraded. The AI could resolve isolated billing queries, but when a customer's issue spanned logistics, a missed payment, and a merchant dispute, the agent failed. The human agents who used to bridge those silos were gone. By the first quarter of 2026, Klarna booked a restructuring charge of roughly $200 million to rebuild the human-AI loop.</p>
+
+    <div class="beat-marker">BEAT 1</div>
+    <h2>The Orchestration Trap</h2>
+    <p>This was not a model failure. It was an organizational boundary failure.</p>
+    <p>When an AI agent stays inside a single product pod, a centralized AI team can maintain it. When that agent must read state from the billing database, write to the logistics API, and trigger a retention email, it crosses organizational boundaries. The centralized "AI Platform" team does not own the billing database's schema. The logistics product team does not own the AI agent's context window.</p>
+
+    <div class="spectrum" data-insight="1">Scaling AI is not a compute problem. It is an orchestration boundary problem.</div>
+
+    <div class="widget">
+      <div class="widget-title">The Agent Scope Lever</div>
+      <p class="muted" style="font-size: 0.9rem; margin-bottom: 1rem;">Drag the lever to expand the agent's workflow from a single silo to cross-boundary operations. Watch the hidden costs scale.</p>
+      <input type="range" id="scope-lever" min="0" max="100" value="10">
+      <div class="curve-container">
+        <svg width="100%" height="100%" viewBox="0 0 400 200" preserveAspectRatio="none">
+          <path id="cost-curve" d="M 0 180 L 400 180" fill="none" stroke="#f43f5e" stroke-width="4" />
+          <line x1="160" y1="0" x2="160" y2="200" stroke="#38bdf8" stroke-dasharray="4" opacity="0.5" />
+          <text x="170" y="20" fill="#38bdf8" font-size="10" font-family="monospace">Boundary Crossing</text>
+        </svg>
+      </div>
+      <div class="cost-display">
+        <span>Orchestration: <span id="orch-cost">$12k</span>/mo</span>
+        <span>Inference: <span id="inf-cost">$8k</span>/mo</span>
+      </div>
+      <figure>
+        <figcaption>The $40M Mirage vs. The $200M Reality</figcaption>
+      </figure>
+    </div>
+
+    <div class="pull-quote reveal" data-insight="3">
+      <p>"The hidden connection is that the companies surviving this transition are not hiring larger AI teams; they are rewriting the rules of human headcount."</p>
+      <div class="share-row">
+        <a href="#" class="share-btn" onclick="shareX(this)">X Share</a>
+        <a href="#" class="share-btn" onclick="shareLI(this)">LinkedIn</a>
+      </div>
+    </div>
+
+    <p>In April 2025, Shopify CEO Tobi Lütke sent an internal memo that fundamentally altered how his engineering org approached scale. The mandate was blunt: before requesting human headcount, a team must prove AI cannot do the job. Managers were forced to ask what their area would look like if autonomous agents were already embedded in the team.</p>
+    
+    <p>Shopify recognized that a centralized AI team becomes a bottleneck the moment an agent requires write-access to multiple product lines. If the supply chain pod needs the AI agent to reroute shipments, they cannot wait on a ticket to the central AI team to update the prompt.</p>
+
+    <div class="beat-marker">BEAT 2</div>
+    <h2>Rewiring Org Boundaries</h2>
+    <p>Look at the cost anatomy of an agentic workflow in 2026. Industry data shows that 62 percent of agentic infrastructure costs do not come from model inference. The bill is driven by observability, state management, and the orchestration layer that ties disparate systems together. A centralized AI team can govern model routing. They cannot govern the business logic living in twelve different product microservices.</p>
+
+    <div class="pull-quote reveal" data-insight="2">
+      <p>"When the orchestration layer accounts for 62 percent of the cost, the team owning the orchestration must own the P&L."</p>
+      <div class="share-row">
+        <a href="#" class="share-btn" onclick="shareX(this)">X Share</a>
+        <a href="#" class="share-btn" onclick="shareLI(this)">LinkedIn</a>
+      </div>
+    </div>
+
+    <div class="recall-card" onclick="this.classList.toggle('flipped')">
+      <div class="card-inner">
+        <div class="card-face">What percentage of agentic infrastructure costs come from observability and orchestration in 2026?</div>
+        <div class="card-face card-back">62 Percent</div>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr><th>Company</th><th>Strategy</th><th>Scale Failure</th><th>Cost Impact</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Klarna</td><td>Headcount Replacement</td><td>Siloed edge-case failures</td><td>$200M restructuring</td></tr>
+        <tr><td>Shopify</td><td>Embedded Mandate</td><td>Cultural adoption lag</td><td>Decentralized orchestration</td></tr>
+      </tbody>
+    </table>
+    <figure>
+      <figcaption>When the Hub Becomes the Bottleneck</figcaption>
+    </figure>
+
+    <p>The counterargument is obvious: giving every product team autonomy over agents creates chaos, duplicated effort, and security nightmares. This is true for prompt engineering. It is false for state orchestration. The central AI team must own the guardrails, the model router, and the evaluation harness. The embedded product teams must own the agent's operational state and the specific API tools it can trigger.</p>
+
+    <h2>The Boundary Shift</h2>
+    <p>To survive the scale transition, engineering leaders must execute three structural shifts.</p>
+    <p><strong>Action 1: The Silo Severance.</strong> Map your current human "bridge" roles. Do not automate their jobs with an agent until you have built a unified orchestration state layer that both teams can read and write to.</p>
+    <p><strong>Action 2: The Orchestration Budget Shift.</strong> Move the line item for "Agent Observability" out of the centralized AI budget and into the product pods.</p>
+    <p><strong>Action 3: The Write-Access Mandate.</strong> No agent is allowed in production unless the team owning its primary trigger event also owns the rollback mechanism.</p>
+
+    <p>Pull your agentic failure logs from the last seven days. Find the most frequent edge-case failure. Identify which product team's database triggered it, and check if that specific team's engineers have write-access to the agent's orchestration rules. Give them the keys today.</p>
+
+    <svg width="100%" height="200" viewBox="0 0 400 200" style="margin: 3rem 0;">
+      <circle cx="100" cy="100" r="40" fill="none" stroke="#38bdf8" stroke-width="2"/>
+      <text x="100" y="105" text-anchor="middle" fill="#38bdf8" font-size="12" font-family="monospace">Compute</text>
+      <path d="M 140 100 L 260 100" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+      <circle cx="300" cy="100" r="40" fill="none" stroke="#f43f5e" stroke-width="2"/>
+      <text x="300" y="105" text-anchor="middle" fill="#f43f5e" font-size="12" font-family="monospace">Org Design</text>
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8" />
+        </marker>
+      </defs>
+    </svg>
+    <figure>
+      <figcaption>The Concept Map of Scale</figcaption>
+    </figure>
+
+  </main>
+</div>
+
+<footer>
+  <p><a href="https://iggym.github.io/scaling-ai-systems/">Scaling AI Systems</a> &copy; 2026</p>
+  <p>Sources: Klarna Q1 2026 SEC Filings, Shopify Internal Memo (April 2025), Agentic AI Statistics 2026.</p>
+  <button onclick="window.scrollTo({top:0, behavior:'smooth'})" style="margin-top:1rem; background:transparent; border:1px solid var(--grid-line); color:var(--muted); padding:0.5rem 1rem; border-radius:6px; cursor:pointer;">Back to top</button>
+</footer>
+
+<script>
+  // Progress Bar
+  window.onscroll = () => {
+    const h = document.documentElement;
+    const pct = (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100;
+    document.getElementById('progress').style.width = pct + '%';
+  };
+
+  // Centerpiece Widget
+  const lever = document.getElementById('scope-lever');
+  const curve = document.getElementById('cost-curve');
+  const orchEl = document.getElementById('orch-cost');
+  const infEl = document.getElementById('inf-cost');
+
+  lever.addEventListener('input', (e) => {
+    const v = parseInt(e.target.value);
+    let orch = 12; let inf = 8;
+    if (v > 40) {
+      orch = 12 + ((v - 40) * 3); // Exponential spike
+    }
+    inf = 8 + (v * 0.1);
+    orchEl.innerText = '$' + Math.round(orch) + 'k';
+    infEl.innerText = '$' + Math.round(inf) + 'k';
+    
+    const y = 180 - (orch * 2);
+    curve.setAttribute('d', `M 0 180 Q ${v * 2} ${y} 400 ${180 - (orch * 1.5)}`);
+  });
+
+  // Intersection Observers
+  const revealObs = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) entry.target.classList.add('revealed');
+    });
+  }, { threshold: 0.2 });
+  document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+
+  const trackerObs = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.dataset.insight;
+        const t = document.getElementById('tracker-' + id);
+        if (t) t.classList.add('unlocked');
+      }
+    });
+  }, { threshold: 0.5 });
+  document.querySelectorAll('[data-insight]').forEach(el => trackerObs.observe(el));
+
+  // Share
+  function shareX(el) {
+    const text = el.closest('.pull-quote').querySelector('p').innerText;
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}`);
+  }
+  function shareLI(el) {
+    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}`);
+  }
+</script>
+</body>
+</html>

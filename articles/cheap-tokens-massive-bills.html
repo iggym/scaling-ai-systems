@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cheap Tokens, Massive Bills — Scaling AI Systems</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-main: #0b0f19;
+      --bg-card: #111827;
+      --bg-card-hover: #1f2937;
+      --border-color: #374151;
+      --text-main: #f9fafb;
+      --text-muted: #9ca3af;
+      --accent-blue: #3b82f6;
+      --accent-red: #ef4444;
+      --accent-green: #10b981;
+      --accent-purple: #8b5cf6;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      line-height: 1.6;
+      padding-top: 60px;
+    }
+
+    /* Topbar & Progress */
+    #topbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 60px;
+      background: rgba(11, 15, 25, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.5rem;
+      z-index: 1000;
+    }
+    #progress-container {
+      position: absolute;
+      bottom: 0; left: 0;
+      width: 100%; height: 3px;
+      background: transparent;
+    }
+    #progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+      transition: width 0.1s ease-out;
+    }
+    .topbar-nav { display: flex; align-items: center; gap: 1rem; font-size: 0.875rem; }
+    .topbar-nav a { color: var(--text-muted); text-decoration: none; transition: color 0.2s; }
+    .topbar-nav a:hover { color: var(--text-main); }
+    .topbar-badge {
+      background: rgba(59, 130, 246, 0.15);
+      color: var(--accent-blue);
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    /* Layout */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 3rem;
+    }
+    @media (max-width: 900px) {
+      .container { grid-template-columns: 1fr; }
+    }
+
+    /* Typography */
+    h1 { font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 700; line-height: 1.15; margin-bottom: 1.5rem; letter-spacing: -0.02em; }
+    h2 { font-size: 1.5rem; font-weight: 600; margin: 2rem 0 1rem 0; color: var(--text-main); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+    p { margin-bottom: 1.25rem; color: #d1d5db; font-size: 1.05rem; }
+    strong { color: #fff; }
+    code { font-family: var(--font-mono); background: rgba(255,255,255,0.08); padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.9em; }
+
+    /* Custom Callouts & Spectrum */
+    .spectrum {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(139, 92, 246, 0.1));
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-left: 4px solid var(--accent-red);
+      padding: 1.25rem;
+      border-radius: 8px;
+      margin: 1.5rem 0;
+    }
+    .insight-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-left: 4px solid var(--accent-blue);
+      padding: 1.25rem;
+      border-radius: 8px;
+      margin: 1.5rem 0;
+    }
+    .insight-card .tag { font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent-blue); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; font-weight: 600; }
+
+    /* Pull Quotes & Sharing */
+    .pull-quote {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      padding: 1.5rem;
+      border-radius: 8px;
+      margin: 2rem 0;
+      position: relative;
+    }
+    .pull-quote p { font-size: 1.15rem; font-weight: 500; color: #fff; margin-bottom: 1rem; }
+    .quote-actions { display: flex; gap: 0.75rem; }
+    .share-btn {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 0.4rem 0.8rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+    .share-btn:hover { background: var(--border-color); color: var(--text-main); }
+
+    /* Interactive Centerpiece Widget */
+    .widget-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 2.5rem 0;
+    }
+    .widget-header { margin-bottom: 1rem; }
+    .widget-title { font-size: 1.2rem; font-weight: 600; color: #fff; }
+    .slider-group { margin: 1.25rem 0; }
+    .slider-label { display: flex; justify-content: space-between; font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+    input[type=range] {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--border-color);
+      outline: none;
+      accent-color: var(--accent-blue);
+    }
+    .widget-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-top: 1.5rem;
+      background: rgba(0,0,0,0.3);
+      padding: 1rem;
+      border-radius: 8px;
+    }
+    .metric-item { text-align: center; }
+    .metric-val { font-family: var(--font-mono); font-size: 1.25rem; font-weight: 700; color: #fff; }
+    .metric-lbl { font-size: 0.75rem; color: var(--text-muted); }
+
+    /* Sidebar / Tracker */
+    .sidebar-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+      position: sticky;
+      top: 80px;
+    }
+    .sidebar-title { font-size: 0.9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 1rem; }
+    .tracker-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 0.8rem;
+      padding-bottom: 0.8rem;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .tracker-item.unlocked { color: var(--text-main); }
+    .tracker-dot {
+      width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border-color);
+      display: flex; align-items: center; justify-content: center; font-size: 10px; flex-shrink: 0; margin-top: 2px;
+    }
+    .tracker-item.unlocked .tracker-dot { border-color: var(--accent-green); background: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
+
+    /* Data Table */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      font-size: 0.9rem;
+    }
+    .data-table th, .data-table td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .data-table th { background: rgba(255,255,255,0.03); color: var(--text-muted); font-weight: 600; }
+    .data-table tr:hover { background: rgba(255,255,255,0.02); }
+
+    /* Recall Cards */
+    .recall-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+      cursor: pointer;
+    }
+    .recall-answer { display: none; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed var(--border-color); color: var(--accent-green); font-size: 0.9rem; }
+
+    footer {
+      border-top: 1px solid var(--border-color);
+      padding: 3rem 1.5rem;
+      margin-top: 4rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+    footer a { color: var(--accent-blue); text-decoration: none; }
+
+    /* Scroll animations respect prefers-reduced-motion */
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; animation: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <header idtopbar id="topbar">
+    <div class="topbar-nav">
+      <a href="https://iggym.github.io/scaling-ai-systems/">← Home</a>
+      <span style="color: var(--border-color)">|</span>
+      <span>scaling-ai-systems</span>
+    </div>
+    <div class="topbar-nav">
+      <span class="topbar-badge">Case Study</span>
+      <span style="color: var(--text-muted)">6 min read</span>
+    </div>
+    <div id="progress-container"><div id="progress-bar"></div></div>
+  </header>
+
+  <div class="container">
+    <main>
+      <header>
+        <div style="color: var(--accent-blue); font-family: var(--font-mono); font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 600;">INFERENCE COST ECONOMICS</div>
+        <h1>Cheap Tokens, Massive Bills</h1>
+        <p style="font-size: 1.2rem; color: var(--text-muted);">Why a 75% drop in API model prices quadrupled monthly compute spend for production engineering teams.</p>
+      </header>
+
+      <div class="spectrum">
+        <strong>The Bold Reframe:</strong> Dropping unit token prices do not reduce your cloud bill. They remove the friction for product teams to introduce context payloads and autonomous multi-turn loops that multiply token volume exponentially.
+      </div>
+
+      <p>The pitch deck promised that inference costs would trend toward zero. Token pricing dropped 75% across major foundation model providers in eighteen months. Yet when Anysphere audited their production infrastructure for Cursor, their monthly model inference bill had climbed from $180,000 to $1,140,000.</p>
+
+      <p>They were not alone. Across enterprise software, engineering teams that celebrated unit price cuts walked into quarterly budget reviews with cloud bills that had quadrupled.</p>
+
+      <figure style="margin: 2rem 0;">
+        <svg viewBox="0 0 600 220" style="width: 100%; height: auto; background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color); padding: 10px;">
+          <polyline fill="none" stroke="#ef4444" stroke-width="3" points="40,180 180,160 320,110 540,30" />
+          <polyline fill="none" stroke="#3b82f6" stroke-dasharray="4" stroke-width="2" points="40,60 180,120 320,160 540,190" />
+          <circle cx="540" cy="30" r="6" fill="#ef4444" />
+          <text x="50" y="45" fill="#3b82f6" font-family="sans-serif" font-size="12">Unit Token Price (-75%)</text>
+          <text x="360" y="45" fill="#ef4444" font-family="sans-serif" font-size="12">Total Compute Spend (+533%)</text>
+          <text x="40" y="205" fill="#9ca3af" font-family="sans-serif" font-size="10">Late 2024</text>
+          <text x="500" y="205" fill="#9ca3af" font-family="sans-serif" font-size="10">Early 2026</text>
+        </svg>
+        <figcaption style="font-size: 0.8rem; color: var(--text-muted); text-align: center; margin-top: 0.5rem;">Unit prices falling down, cloud bills soaring up.</figcaption>
+      </figure>
+
+      <h2 id="beat-1">The Unit-Cost Mirage</h2>
+
+      <p>When token prices drop, product teams alter how they write software. In late 2024, sending a 4,000-token prompt with manual context selection cost roughly $0.06 per query. It required strict prompt optimization and careful filtering of system instructions.</p>
+
+      <div class="insight-card" id="insight-1">
+        <div class="tag">Insight 1 · Context Inflation</div>
+        <strong>Unit price cuts trigger prompt expansion.</strong> When unit pricing drops, developers stop filtering inputs, causing prompt context sizes to jump from 4k to 65k tokens per query.
+      </div>
+
+      <p>By early 2026, unit costs plunged to $3.75 per million input tokens. Instead of capturing $0.04 in savings per query, platform teams changed their architecture. They introduced automated context injection—pulling full repository file trees, dynamic abstract syntax trees, and deep dependency graphs into every prompt.</p>
+
+      <div class="pull-quote">
+        <p>“The unit price dropped by 75%, but the cost per interaction grew by 300%.”</p>
+        <div class="quote-actions">
+          <a class="share-btn" href="https://twitter.com/intent/tweet?text=The%20unit%20price%20dropped%20by%2075%25%2C%20but%20the%20cost%20per%20interaction%20grew%20by%20300%25.&url=https://iggym.github.io/scaling-ai-systems/" target="_blank">Share on X</a>
+          <a class="share-btn" href="https://www.linkedin.com/sharing/share-offsite/?url=https://iggym.github.io/scaling-ai-systems/" target="_blank">LinkedIn</a>
+        </div>
+      </div>
+
+      <!-- Centerpiece Interactive Widget -->
+      <div class="widget-box">
+        <div class="widget-header">
+          <div class="widget-title">Inference Cost Tipping Point Simulator</div>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0;">Adjust context payload size and agent call depth to observe how volume expansion overrides price cuts.</p>
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label"><span>Avg Context Size (Tokens):</span><span id="val-context" style="color: #fff; font-family: var(--font-mono);">65,000</span></div>
+          <input type="range" id="slider-context" min="4000" max="128000" step="2000" value="65000">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label"><span>Agent Iteration Loops:</span><span id="val-loops" style="color: #fff; font-family: var(--font-mono);">12</span></div>
+          <input type="range" id="slider-loops" min="1" max="25" step="1" value="12">
+        </div>
+
+        <div class="widget-metrics">
+          <div class="metric-item">
+            <div class="metric-val" id="res-tokens">780k</div>
+            <div class="metric-lbl">Tokens / Session</div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-val" id="res-cost">$2.92</div>
+            <div class="metric-lbl">Cost / Session</div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-val" id="res-monthly" style="color: var(--accent-red);">$87.6k</div>
+            <div class="metric-lbl">Monthly (1k Users/day)</div>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="beat-2">The Agent Loop Trap</h2>
+
+      <p>The second force multiplying token volume is the shift from single-pass prompts to agentic execution loops. Consider Harvey AI’s enterprise deployment across legal workloads.</p>
+
+      <div class="insight-card" id="insight-2">
+        <div class="tag">Insight 2 · Agentic Loop Amplification</div>
+        <strong>Lower latency encourages multi-turn loops.</strong> A single user query expands into 14 internal critique-and-verify loops, driving session token volume up 32x.
+      </div>
+
+      <p>Each iteration re-sends the entire contract context along with previous intermediate attempts. A single user interaction that once took 1.2 LLM API calls expanded into 14.8 calls per task. Total session volume surged from 12,000 tokens to 384,000 tokens.</p>
+
+      <h2>Real Case Comparison</h2>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th>Price Drop</th>
+            <th>Context Shift</th>
+            <th>Monthly Bill Change</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Anysphere (Cursor)</strong></td>
+            <td>-75%</td>
+            <td>4.1k → 65.5k tokens</td>
+            <td style="color: var(--accent-red); font-family: var(--font-mono);">$180k → $1.14M</td>
+          </tr>
+          <tr>
+            <td><strong>Harvey AI</strong></td>
+            <td>-70%</td>
+            <td>1.2 → 14.8 loop calls</td>
+            <td style="color: var(--accent-red); font-family: var(--font-mono);">$12k → $86k / client</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="insight-card" id="insight-3">
+        <div class="tag">Insight 3 · The Cache Hit Illusion</div>
+        <strong>Prompt caching creates hidden fragility.</strong> Caching cuts steady-state costs by 80%, but developers respond by swelling state payloads—causing massive cost spikes during cache miss storms.
+      </div>
+
+      <h2>State Management Beats Negotiation</h2>
+      <p>Controlling inference costs requires managing state payloads, not waiting for cheaper API rates. Engineering leaders must implement explicit payload budgeting, deterministic pre-filtering, and strict agent iteration caps.</p>
+
+      <h2>Knowledge Retrieval Check</h2>
+      <div class="recall-card" onclick="toggleRecall(this)">
+        <strong>Question 1: Why didn't a 75% drop in API token pricing lower total enterprise cloud bills?</strong>
+        <div class="recall-answer">Because lower unit costs removed architectural constraints, causing context sizes (16x) and agent loop iterations (14x) to expand faster than prices fell.</div>
+      </div>
+      <div class="recall-card" onclick="toggleRecall(this)">
+        <strong>Question 2: What is the main financial risk of relying entirely on prompt caching?</strong>
+        <div class="recall-answer">Cache miss storms during traffic spikes re-evaluate massive bloated contexts at full non-cached prices, triggering catastrophic cloud bill spikes.</div>
+      </div>
+
+    </main>
+
+    <aside>
+      <div class="sidebar-section">
+        <div class="sidebar-title">Insight Tracker</div>
+        <div class="tracker-item" id="track-1">
+          <div class="tracker-dot">1</div>
+          <div>Context Inflation Dynamics</div>
+        </div>
+        <div class="tracker-item" id="track-2">
+          <div class="tracker-dot">2</div>
+          <div>Agentic Loop Multiplication</div>
+        </div>
+        <div class="tracker-item" id="track-3">
+          <div class="tracker-dot">3</div>
+          <div>Cache Hit Fragility</div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <footer>
+    <p>Published on scaling-ai-systems · <a href="https://iggym.github.io/scaling-ai-systems/">Back to Main Index</a></p>
+  </footer>
+
+  <script>
+    // Scroll progress bar & insight unlocking
+    window.addEventListener('scroll', () => {
+      const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+      const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      const scrolled = (winScroll / height) * 100;
+      document.getElementById('progress-bar').style.width = scrolled + '%';
+
+      // Unlock tracker items based on scroll
+      if (winScroll > 300) document.getElementById('track-1').classList.add('unlocked');
+      if (winScroll > 700) document.getElementById('track-2').classList.add('unlocked');
+      if (winScroll > 1100) document.getElementById('track-3').classList.add('unlocked');
+    });
+
+    // Centerpiece Widget Calculation
+    const sliderContext = document.getElementById('slider-context');
+    const sliderLoops = document.getElementById('slider-loops');
+    
+    function updateWidget() {
+      const ctx = parseInt(sliderContext.value);
+      const loops = parseInt(sliderLoops.value);
+      
+      document.getElementById('val-context').innerText = ctx.toLocaleString();
+      document.getElementById('val-loops').innerText = loops;
+
+      const totalTokens = ctx * loops;
+      const costPerSession = (totalTokens / 1000000) * 3.75;
+      const monthlySpend = costPerSession * 1000 * 30;
+
+      document.getElementById('res-tokens').innerText = (totalTokens / 1000).toFixed(0) + 'k';
+      document.getElementById('res-cost').innerText = '$' + costPerSession.toFixed(2);
+      document.getElementById('res-monthly').innerText = '$' + (monthlySpend / 1000).toFixed(1) + 'k';
+    }
+
+    sliderContext.addEventListener('input', updateWidget);
+    sliderLoops.addEventListener('input', updateWidget);
+    updateWidget();
+
+    // Toggle Recall Answer
+    function toggleRecall(el) {
+      const ans = el.querySelector('.recall-answer');
+      ans.style.display = (ans.style.display === 'block') ? 'none' : 'block';
+    }
+  </script>
+</body>
+</html>

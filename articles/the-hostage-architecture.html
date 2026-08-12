@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Hostage Architecture | Scaling AI Systems</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fdfbf7;
+    --text: #1a1a1a;
+    --accent: #d9480f;
+    --secondary: #2b8a3e;
+    --border: #e9ecef;
+    --glass: rgba(255, 255, 255, 0.75);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    padding-top: 60px;
+  }
+  h1, h2, h3, h4 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; line-height: 1.2; margin-bottom: 1rem; }
+  h1 { font-size: 2.5rem; margin-top: 2rem; }
+  h2 { font-size: 1.8rem; margin-top: 2.5rem; border-bottom: 2px solid var(--accent); display: inline-block; padding-bottom: 4px; }
+  p { margin-bottom: 1.2rem; font-size: 1.05rem; }
+  a { color: var(--accent); text-decoration: none; font-weight: 600; }
+  
+  /* Topbar */
+  #topbar {
+    position: fixed; top: 0; left: 0; width: 100%; height: 60px;
+    background: var(--glass); backdrop-filter: blur(12px); z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 2rem; border-bottom: 1px solid var(--border);
+  }
+  #progress { position: absolute; bottom: 0; left: 0; height: 3px; background: var(--accent); width: 0%; transition: width 0.1s; }
+  .nav-links { display: flex; gap: 1.5rem; align-items: center; }
+  .hamburger { display: none; cursor: pointer; }
+  
+  /* Grid Layout */
+  .container {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 3rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+  main { max-width: 700px; }
+  
+  /* Sidebar / Drawer */
+  aside {
+    position: sticky; top: 80px;
+    height: fit-content;
+    border-left: 1px solid var(--border);
+    padding-left: 2rem;
+  }
+  
+  /* Hero */
+  .hero { margin-bottom: 3rem; }
+  .clamped-title {
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .spectrum-widget {
+    margin-top: 1rem; padding: 1rem; background: #f1f3f5; border-radius: 8px;
+    font-family: monospace; font-size: 0.9rem; border-left: 4px solid var(--secondary);
+  }
+  
+  /* Pull Quotes */
+  .pull-quote {
+    font-size: 1.4rem; font-weight: 500; color: var(--accent);
+    border-left: 4px solid var(--accent); padding-left: 1rem; margin: 2rem 0;
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;
+  }
+  .share-icons { display: flex; gap: 0.5rem; flex-shrink: 0; }
+  .share-icons svg { width: 24px; height: 24px; cursor: pointer; fill: var(--text); transition: fill 0.2s; }
+  .share-icons svg:hover { fill: var(--accent); }
+  
+  /* Centerpiece Widget */
+  .centerpiece-widget {
+    background: #f8f9fa; border: 1px solid var(--border); border-radius: 12px;
+    padding: 2rem; margin: 3rem 0; text-align: center;
+  }
+  .widget-controls { margin-bottom: 1.5rem; }
+  input[type="range"] { width: 100%; margin: 1rem 0; accent-color: var(--accent); }
+  .widget-readout { display: flex; justify-content: space-between; font-weight: 600; font-size: 1.1rem; }
+  .widget-readout span:last-child { color: var(--secondary); }
+  figcaption { font-size: 0.9rem; color: #666; margin-top: 1rem; font-style: italic; }
+  
+  /* Data Table */
+  table { width: 100%; border-collapse: collapse; margin: 2rem 0; font-size: 0.95rem; }
+  th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { background: #f1f3f5; cursor: pointer; user-select: none; }
+  th:hover { background: #e9ecef; }
+  
+  /* Reveal Animations */
+  .reveal { opacity: 0; transform: translateY(20px); transition: all 0.8s ease-out; }
+  .reveal.active { opacity: 1; transform: translateY(0); }
+  
+  /* Three Things Tracker */
+  .tracker-item {
+    display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;
+    opacity: 0.4; transition: opacity 0.5s;
+  }
+  .tracker-item.unlocked { opacity: 1; }
+  .tracker-icon {
+    width: 24px; height: 24px; border: 2px solid var(--border); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 14px;
+  }
+  .tracker-item.unlocked .tracker-icon { background: var(--secondary); border-color: var(--secondary); color: white; }
+  
+  /* Concept Map */
+  .concept-map { margin: 3rem 0; text-align: center; }
+  .concept-map svg { max-width: 100%; height: auto; }
+  
+  /* Footer */
+  footer {
+    background: #1a1a1a; color: #f8f9fa; padding: 3rem 2rem; margin-top: 4rem;
+    font-size: 0.9rem;
+  }
+  footer h4 { color: #fff; margin-bottom: 1rem; }
+  footer ul { list-style: none; padding-left: 0; }
+  footer li { margin-bottom: 0.5rem; }
+  footer a { color: #adb5bd; }
+  #scroll-top {
+    position: fixed; bottom: 2rem; right: 2rem; background: var(--accent); color: white;
+    width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); opacity: 0; transition: opacity 0.3s; z-index: 99;
+  }
+  #scroll-top.visible { opacity: 1; }
+
+  @media (max-width: 880px) {
+    .container { grid-template-columns: 1fr; }
+    aside { position: static; border-left: none; padding-left: 0; border-top: 1px solid var(--border); margin-top: 2rem; padding-top: 2rem; }
+    .nav-links { display: none; }
+    .hamburger { display: block; }
+    h1 { font-size: 2rem; }
+  }
+  
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; transition: none; }
+    #progress { transition: none; }
+    #scroll-top { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+<nav id="topbar">
+  <a href="https://iggym.github.io/scaling-ai-systems/">Home</a>
+  <div class="nav-links">
+    <span style="color:#666; font-size:0.9rem;">Breadcrumb: Case Studies / Vendor Lock-In</span>
+    <span style="font-weight:600;">7 min read</span>
+  </div>
+  <div class="hamburger">☰</div>
+</nav>
+
+<div class="container">
+  <main>
+    <div class="hero">
+      <h1 class="clamped-title">The Hostage Architecture</h1>
+      <div class="spectrum-widget">
+        <strong>Bold Reframe:</strong> Vendor lock-in in AI extends far beyond data-egress fees. It functions as a subsidized unit-economics trap and a cognitive-calcification crisis.
+      </div>
+    </div>
+
+    <div class="pull-quote reveal">
+      <span>"The first time text-adventure startup Latitude hit a million active players, the engineering team wasn't popping champagne. They were staring at a $10,000 daily invoice from OpenAI."</span>
+      <div class="share-icons">
+        <a href="https://twitter.com/intent/tweet?text=The+first+time+Latitude+hit+1M+users,+they+stared+at+a+%2410k+daily+invoice.&url=" target="_blank" aria-label="Share on X"><svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+        <a href="https://www.linkedin.com/sharing/share-offsite/?url=" target="_blank" aria-label="Share on LinkedIn"><svg viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.063 2.063 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg></a>
+      </div>
+    </div>
+
+    <p class="reveal">The first time text-adventure startup Latitude hit a million active players, the engineering team wasn't popping champagne. They were staring at a $10,000 daily invoice from OpenAI.</p>
+    <p class="reveal">Their game, AI Dungeon, generated hundreds of tokens per user interaction. At GPT-3 scale, inference costs didn't just grow linearly—they compounded against the user base. The founders quickly realized that surviving required a pivot to alternative models. But when they tried experimenting with self-hosted open-source models to stop the bleeding, they hit a different wall. Downloading 5GB model weights across cloud instances at $0.35 a pop racked up a $50,000 egress bill before a single user prompt was processed.</p>
+    <p class="reveal">This is the trap. You build your MVP on a single provider's API because it is fast, cheap, and magical. By the time you hit scale, the architecture you built to ship fast has become a hostage situation.</p>
+
+    <h2 class="reveal">The Hostage Architecture</h2>
+    <p class="reveal">Vendor lock-in in AI extends far beyond data-egress fees. It functions as a subsidized unit-economics trap and a cognitive-calcification crisis.</p>
+    <p class="reveal" style="font-style: italic; color: #495057;">The exact mechanism that makes your AI product feel magical to users today is the same mechanism that makes it structurally impossible to migrate tomorrow.</p>
+    
+    <p class="reveal">Let's name the dynamic driving this: The Unit-Economics Correction. In 2024, OpenAI spent $9 billion to generate $4 billion in revenue. Frontier labs are currently subsidizing your inference costs to acquire your workload and train their routing layers on your edge cases. Menlo Ventures data shows enterprise AI spend exploded 3.2x year-over-year, hitting $37 billion in 2025. You are scaling on borrowed margins. When those providers inevitably correct their unit economics to achieve profitability, your locked-in architecture will absorb the full price hike.</p>
+
+    <div class="reveal" style="background: #fff3bf; padding: 1rem; border-radius: 8px; margin: 2rem 0; font-weight: 600; border-left: 4px solid #fab005;">
+      [BEAT 1] The realization that API pricing is a customer acquisition cost, not a sustainable unit economic model.
+    </div>
+
+    <p class="reveal">The counterargument from every infrastructure lead is predictable: "We will just switch to self-hosted open-source models when prices rise."</p>
+    <p class="reveal">The exit toll is steeper than the invoice suggests. Swfte AI data pegs AI vendor lock-in switching costs at 19% to 34% of your total AI budget. This isn't just the cost of new GPUs. It is the cost of rewriting evaluation suites, retraining retrieval pipelines, and burning engineering cycles on prompt migration. MIT researchers estimate you have exactly 18 months before vendor lock-in calcifies your strategic choices. By the time you realize the API prices are going up, your prompt templates, grading rubrics, and fine-tuning pipelines are structurally dependent on the quirks of a single model family.</p>
+
+    <h2 class="reveal">The 18-Month Calcification Window</h2>
+    <p class="reveal">To understand why migration fails, you have to stop looking at the API and start looking at the prompts.</p>
+    <p class="reveal">Prompts are not just text; they are behavioral contracts. When you spend six months tuning a system prompt to handle the specific hallucination patterns of a frontier model, that prompt fails on a different architecture. Your evaluation suite is tuned to grade one model's outputs. Your RAG chunking strategy is optimized for a specific context window. This is cognitive lock-in.</p>
+
+    <div class="reveal" style="background: #d0bfff; padding: 1rem; border-radius: 8px; margin: 2rem 0; font-weight: 600; border-left: 4px solid #7048e8; color: #fff;">
+      [BEAT 2] The shift from viewing lock-in as a data-egress problem to viewing it as a cognitive-calcification problem.
+    </div>
+
+    <p class="reveal">Deloitte’s 2026 analysis found that on-premise AI delivers 50% or more cost savings over three years compared to cloud API alternatives. But those savings only materialize once you cross the token-volume threshold. The problem is reaching that threshold without going bankrupt on the API, and migrating your cognitive lock-in before the 18-month window closes.</p>
+    <p class="reveal">Think of this in three six-month phases. In months one through six, you are optimizing for latency and output quality. In months seven through twelve, you are hardcoding provider-specific tool-calling schemas. By month eighteen, your application logic is inextricably tied to the idiosyncratic JSON formatting of a single vendor.</p>
+
+    <h2 class="reveal">The Exit Tax Ledger</h2>
+    <p class="reveal">Cloud repatriation case studies from the last decade show that companies moving off hyperscalers achieve 45% to 60% cost savings. AI repatriation follows the same math, but the friction is entirely different.</p>
+    <p class="reveal">When you migrate a database, you move bytes. When you migrate an agentic workflow, you move behaviors. The 19% to 34% exit tax identified by Swfte AI is paid in engineering hours. It is the cost of discovering that the open-source model you migrated to refuses to follow your complex multi-step reasoning chains. It is the cost of rebuilding your guardrails from scratch because the new model bypasses your safety prompts.</p>
+
+    <figure class="centerpiece-widget reveal">
+      <h3 style="margin-bottom: 1rem; font-size: 1.2rem;">The Inflection Point</h3>
+      <div class="widget-controls">
+        <label for="traffic-lever">Monthly Tokens (Millions)</label>
+        <input type="range" id="traffic-lever" min="1" max="100" value="10" aria-label="Adjust monthly tokens">
+        <div class="widget-readout">
+          <span>API Cost: $<span id="api-cost">5,000</span></span>
+          <span>Self-Hosted: $<span id="self-host-cost">5,500</span></span>
+        </div>
+      </div>
+      <svg viewBox="0 0 400 200" id="cost-svg" preserveAspectRatio="none">
+        <rect width="400" height="200" fill="#fff" />
+        <path d="M 0 190 L 400 190" stroke="#dee2e6" stroke-width="1" />
+        <path d="M 0 100 L 400 100" stroke="#dee2e6" stroke-width="1" stroke-dasharray="4" />
+        <path id="api-path" d="M 0 190 L 400 50" stroke="var(--accent)" stroke-width="3" fill="none" />
+        <path id="self-path" d="M 0 140 L 400 130" stroke="var(--secondary)" stroke-width="3" fill="none" stroke-dasharray="5,5" />
+        <circle id="inflection-point" cx="0" cy="0" r="6" fill="#212529" style="display:none" />
+      </svg>
+      <figcaption>The moment the subsidy ends and the exit tax begins.</figcaption>
+    </figure>
+
+    <p class="reveal">If you wait for the renewal negotiation to realize you have no leverage, the 19% exit tax becomes a permanent margin reduction. The provider knows your migration cost. They price their enterprise tier exactly at the point where switching is mathematically painful but financially survivable.</p>
+
+    <h2 class="reveal">The Migration Framework</h2>
+    <p class="reveal">You cannot negotiate leverage you do not possess. You must build the exit door while the house is still being framed.</p>
+    
+    <h3 class="reveal">1. Abstract the Prompt Layer</h3>
+    <p class="reveal">Strip provider-specific syntax out of your core application logic. Route prompts through a middleware that maps generic instructions to provider-specific parameters. If your codebase contains hardcoded references to specific model versions or proprietary tool-calling schemas in the business logic layer, you are already locked in. The middleware must own the translation.</p>
+    
+    <h3 class="reveal">2. Run Shadow Evaluations</h3>
+    <p class="reveal">Every week, route 5% of your production traffic against a secondary open-source or alternative model. Do not just measure latency; measure the degradation in output quality against your primary evaluation suite. This gives you a live, continuous read on your actual switching cost. If the shadow model scores within 10% of your primary model, your exit tax is low. If it scores 40% lower, your cognitive lock-in is severe.</p>
+    
+    <h3 class="reveal">3. Map the Calcification Horizon</h3>
+    <p class="reveal">Identify which downstream systems rely on model-specific formatting. Are your parsers expecting a specific markdown structure? Are your database insertions relying on a provider's unique JSON schema? Refactor these integrations to consume a normalized internal data contract before you pass the 18-month mark.</p>
+
+    <div class="pull-quote reveal" style="color: var(--secondary); border-left-color: var(--secondary);">
+      <span>"Leverage is not negotiated at the renewal table. It is engineered into the architecture eighteen months earlier."</span>
+      <div class="share-icons">
+        <a href="https://twitter.com/intent/tweet?text=Leverage+is+not+negotiated+at+the+renewal+table.+It+is+engineered+into+the+architecture+18+months+earlier.&url=" target="_blank" aria-label="Share on X"><svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+        <a href="https://www.linkedin.com/sharing/share-offsite/?url=" target="_blank" aria-label="Share on LinkedIn"><svg viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.063 2.063 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg></a>
+      </div>
+    </div>
+
+    <h2 class="reveal">The 24-Hour Mandate</h2>
+    <p class="reveal">Open your most critical agent's prompt file right now. Scan the system instructions for hardcoded references to proprietary formatting, specific model behaviors, or vendor-specific tool definitions. Rewrite those instructions to pass through a standardized, provider-agnostic middleware interface by the end of the day.</p>
+
+    <figure class="concept-map reveal">
+      <svg viewBox="0 0 400 200">
+        <circle cx="200" cy="100" r="40" fill="var(--accent)" />
+        <text x="200" y="105" text-anchor="middle" fill="#fff" font-family="sans-serif" font-size="12">Vendor Lock-In</text>
+        
+        <circle cx="80" cy="50" r="30" fill="#f8f9fa" stroke="var(--border)" />
+        <text x="80" y="55" text-anchor="middle" font-family="sans-serif" font-size="10">Unit Economics</text>
+        <line x1="110" y1="65" x2="160" y2="85" stroke="var(--border)" />
+        
+        <circle cx="320" cy="150" r="30" fill="#f8f9fa" stroke="var(--border)" />
+        <text x="320" y="155" text-anchor="middle" font-family="sans-serif" font-size="10">Cognitive Calcification</text>
+        <line x1="290" y1="135" x2="240" y2="115" stroke="var(--border)" />
+      </svg>
+      <figcaption>Lock-in is not an infrastructure problem; it is a structural alignment of cost and behavior.</figcaption>
+    </figure>
+
+  </main>
+
+  <aside>
+    <h4 style="margin-bottom: 1rem;">Three Things You Need</h4>
+    <div class="tracker-item" data-target="18-month">
+      <div class="tracker-icon">✓</div>
+      <span>The 18-Month Window</span>
+    </div>
+    <div class="tracker-item" data-target="subsidy">
+      <div class="tracker-icon">✓</div>
+      <span>The Subsidy Trap</span>
+    </div>
+    <div class="tracker-item" data-target="exit-tax">
+      <div class="tracker-icon">✓</div>
+      <span>The 19-34% Exit Tax</span>
+    </div>
+
+    <h4 style="margin-top: 2rem; margin-bottom: 1rem;">The Math</h4>
+    <table>
+      <tr><th>Metric</th><th>Figure</th></tr>
+      <tr><td>OpenAI 2024 Cost</td><td>$9B</td></tr>
+      <tr><td>OpenAI 2024 Rev</td><td>$4B</td></tr>
+      <tr><td>AI Spend Growth</td><td>3.2x YoY</td></tr>
+      <tr><td>Switching Cost</td><td>19-34%</td></tr>
+    </table>
+  </aside>
+</div>
+
+<footer>
+  <h4>Citations</h4>
+  <ul>
+    <li>Latitude Engineering Blog / AI21 Case Study (AI Dungeon $10k/day, $50k egress)</li>
+    <li>Menlo Ventures 2025 Report ($37B enterprise spend, 3.2x YoY)</li>
+    <li>OpenAI Financial Disclosures ($9B cost vs $4B revenue in 2024)</li>
+    <li>Deloitte 2026 Analysis (50%+ savings on-prem over 3 years)</li>
+    <li>MIT Research (18-month lock-in horizon)</li>
+    <li>Swfte AI (19-34% switching costs)</li>
+  </ul>
+  <p style="margin-top: 2rem;"><a href="https://iggym.github.io/scaling-ai-systems/">Return to Scaling AI Systems Home</a></p>
+</footer>
+
+<div id="scroll-top">↑</div>
+
+<script>
+  // Progress Bar
+  const progress = document.getElementById('progress');
+  window.addEventListener('scroll', () => {
+    const scrollTop = window.scrollY;
+    const docHeight = document.body.scrollHeight - window.innerHeight;
+    progress.style.width = (scrollTop / docHeight) * 100 + '%';
+    
+    // Scroll to Top Button
+    const btn = document.getElementById('scroll-top');
+    if (scrollTop > 500) btn.classList.add('visible');
+    else btn.classList.remove('visible');
+  });
+
+  document.getElementById('scroll-top').addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  // Intersection Observer for Reveals & Trackers
+  const reveals = document.querySelectorAll('.reveal');
+  const trackers = document.querySelectorAll('.tracker-item');
+  
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        if (entry.target.classList.contains('tracker-item')) {
+          entry.target.classList.add('unlocked');
+        } else {
+          entry.target.classList.add('active');
+        }
+      }
+    });
+  }, { threshold: 0.2 });
+
+  reveals.forEach(el => observer.observe(el));
+  trackers.forEach(el => observer.observe(el));
+
+  // Centerpiece Widget Logic
+  const lever = document.getElementById('traffic-lever');
+  const apiCostEl = document.getElementById('api-cost');
+  const selfHostCostEl = document.getElementById('self-host-cost');
+  const apiPath = document.getElementById('api-path');
+  const selfPath = document.getElementById('self-path');
+  const inflection = document.getElementById('inflection-point');
+
+  function updateWidget() {
+    const tokens = parseInt(lever.value); // Millions
+    
+    // Subsidized API Cost (Low start, exponential curve)
+    let apiCost = tokens * 100 + Math.pow(tokens, 1.8) * 2;
+    // Self-Hosted Cost (High fixed, low marginal)
+    let selfHostCost = 4000 + tokens * 20;
+
+    apiCostEl.textContent = Math.round(apiCost).toLocaleString();
+    selfHostCostEl.textContent = Math.round(selfHostCost).toLocaleString();
+
+    // Update SVG paths
+    // X = tokens * 4 (0 to 400)
+    // Y = 200 - (Cost / 100) (clamped between 10 and 190)
+    const x = tokens * 4;
+    const yApi = Math.max(10, 200 - (apiCost / 100));
+    const ySelf = Math.max(10, 200 - (selfHostCost / 100));
+
+    // Simple dynamic line drawing from origin to current point
+    apiPath.setAttribute('d', `M 0 190 L ${x} ${yApi}`);
+    selfPath.setAttribute('d', `M 0 160 L ${x} ${ySelf}`);
+
+    // Inflection point visualization
+    if (apiCost > selfHostCost) {
+      inflection.style.display = 'block';
+      inflection.setAttribute('cx', x);
+      inflection.setAttribute('cy', yApi);
+    } else {
+      inflection.style.display = 'none';
+    }
+  }
+
+  lever.addEventListener('input', updateWidget);
+  updateWidget();
+
+  // Table Sorting (Bonus interactivity)
+  document.querySelectorAll('th').forEach(header => {
+    header.addEventListener('click', () => {
+      const table = header.parentElement.parentElement.parentElement;
+      const index = Array.from(header.parentElement.children).indexOf(header);
+      const rows = Array.from(table.querySelectorAll('tr')).slice(1);
+      const isNumeric = !isNaN(parseInt(rows[0].children[index].textContent));
+      
+      rows.sort((a, b) => {
+        let valA = a.children[index].textContent;
+        let valB = b.children[index].textContent;
+        if (isNumeric) {
+          valA = parseFloat(valA.replace(/[^0-9.-]+/g,""));
+          valB = parseFloat(valB.replace(/[^0-9.-]+/g,""));
+        }
+        return valA > valB ? 1 : -1;
+      });
+      
+      rows.forEach(row => table.appendChild(row));
+    });
+  });
+</script>
+</body>
+</html>

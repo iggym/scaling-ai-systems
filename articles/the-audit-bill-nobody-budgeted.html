@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Audit Bill Nobody Budgeted — Scaling AI Systems</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#09090f;--card:#12121e;--card-h:#1a1a2e;
+  --t:#e8e6e3;--tm:#9b9a97;--td:#5e5d5b;
+  --ac:#ff6b35;--acd:rgba(255,107,53,.14);--acg:rgba(255,107,53,.35);
+  --gn:#34d399;--gnd:rgba(52,211,153,.14);
+  --rd:#f87171;--rdd:rgba(248,113,113,.14);
+  --bl:#60a5fa;--bld:rgba(96,165,250,.14);
+  --bd:#252535;--gl:rgba(18,18,30,.88);--glb:rgba(255,255,255,.07);
+  --fd:'Space Grotesk',system-ui,sans-serif;--fb:'Source Serif 4',Georgia,serif;
+  --mw:1200px;--sw:280px
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--fb);background:var(--bg);color:var(--t);line-height:1.7;font-size:17px;overflow-x:hidden}
+a{color:var(--ac);text-decoration:none}a:hover{text-decoration:underline}
+h1,h2,h3,h4{font-family:var(--fd);color:var(--t);line-height:1.2}
+#progress{position:fixed;top:0;left:0;height:3px;background:var(--ac);z-index:200;width:0%;transition:width .12s linear}
+#topbar{position:sticky;top:0;z-index:150;background:var(--gl);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--glb);padding:0 24px;height:56px;display:flex;align-items:center;gap:14px;font-family:var(--fd);font-size:14px}
+#topbar .hm{font-weight:700;color:var(--t);letter-spacing:-.02em}
+#topbar .bc{color:var(--tm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#topbar .rt{margin-left:auto;color:var(--td);font-size:13px}
+#ham{display:none;background:none;border:none;color:var(--t);cursor:pointer;font-size:22px;padding:4px}
+@media(max-width:880px){#ham{display:block}#topbar .rt{display:none}#topbar .bc{max-width:40vw}}
+#hero{max-width:var(--mw);margin:0 auto;padding:72px 24px 36px}
+#hero h1{font-size:clamp(2.2rem,5.5vw,4rem);font-weight:700;letter-spacing:-.03em;margin-bottom:18px}
+#hero .rf{font-size:clamp(.95rem,2vw,1.2rem);color:var(--tm);max-width:720px;line-height:1.65}
+.spectrum{display:flex;align-items:center;gap:12px;margin:28px 0;padding:14px 18px;background:var(--card);border:1px solid var(--bd);border-radius:10px;font-family:var(--fd);font-size:13px}
+.spectrum .lb{flex:0 0 auto;white-space:nowrap}
+.spectrum .lb.l{color:var(--td)}.spectrum .lb.r{color:var(--ac);font-weight:600}
+.spectrum .tk{flex:1;height:6px;background:var(--bd);border-radius:3px;position:relative}
+.spectrum .fl{position:absolute;left:0;top:0;height:100%;background:linear-gradient(90deg,var(--td),var(--ac));border-radius:3px;width:78%;transition:width .6s}
+.spectrum .dt{position:absolute;top:50%;right:22%;transform:translate(50%,-50%);width:14px;height:14px;background:var(--ac);border-radius:50%;border:2px solid var(--bg);box-shadow:0 0 8px var(--acg)}
+#layout{max-width:var(--mw);margin:0 auto;display:grid;grid-template-columns:1fr var(--sw);gap:40px;padding:20px 24px 80px}
+#main{min-width:0}
+#side{position:sticky;top:76px;align-self:start;max-height:calc(100vh - 96px);overflow-y:auto;font-family:var(--fd);font-size:13px}
+@media(max-width:880px){
+  #layout{grid-template-columns:1fr;gap:0}
+  #side{position:fixed;top:56px;right:-320px;width:300px;height:calc(100vh - 56px);background:var(--card);border-left:1px solid var(--bd);z-index:140;transition:right .3s;padding:20px;overflow-y:auto}
+  #side.open{right:0}
+  #ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:139}
+  #ov.open{display:block}
+}
+.sec{margin-bottom:44px}.sec h2{font-size:clamp(1.25rem,3vw,1.65rem);margin-bottom:14px;letter-spacing:-.02em}
+.sec p{margin-bottom:16px}.sec strong{color:var(--t);font-weight:600}
+.mb::before,.ma::before{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:middle;margin:0 3px;font-size:9px;line-height:14px;text-align:center;font-family:var(--fd)}
+.mb::before{content:'';border:1.5px solid var(--td);background:transparent}
+.ma::before{content:'';background:var(--ac);border:1.5px solid var(--ac)}
+.pq{position:relative;margin:32px -16px;padding:24px 24px 16px;background:linear-gradient(135deg,var(--acd),var(--card));border-left:4px solid var(--ac);border-radius:0 10px 10px 0;font-family:var(--fd);font-size:clamp(.95rem,2.1vw,1.15rem);font-weight:500;line-height:1.55;color:var(--t)}
+.pq .sr{display:flex;gap:10px;margin-top:12px}
+.pq .sr a{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;background:rgba(255,255,255,.06);color:var(--tm);font-size:12px;font-family:var(--fd);transition:background .2s}
+.pq .sr a:hover{background:rgba(255,255,255,.12);text-decoration:none;color:var(--t)}
+.pq .sr svg{width:14px;height:14px;fill:currentColor}
+.ww{margin:44px 0;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:24px;overflow:hidden}
+.ww figcaption{font-family:var(--fd);font-size:12px;color:var(--td);margin-top:12px;text-align:center;letter-spacing:.02em}
+.ww h3{font-size:15px;margin-bottom:14px;color:var(--tm);font-weight:500}
+#cc{width:100%;height:280px;display:block;border-radius:8px;background:#0d0d18}
+.wc{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-top:14px;font-family:var(--fd);font-size:13px}
+.wc label{color:var(--tm);display:flex;align-items:center;gap:8px}
+.wc input[type=range]{width:160px;accent-color:var(--ac)}
+.wc .rb{display:flex;gap:6px}
+.wc .rb button{padding:4px 12px;border-radius:6px;border:1px solid var(--bd);background:transparent;color:var(--tm);cursor:pointer;font-family:var(--fd);font-size:12px;transition:all .2s}
+.wc .rb button.on{background:var(--acd);border-color:var(--ac);color:var(--ac)}
+.wl{display:flex;gap:18px;margin-top:10px;font-size:12px;font-family:var(--fd)}
+.wl span{display:flex;align-items:center;gap:6px;color:var(--tm)}
+.wl .di{width:10px;height:3px;background:var(--gn);border-radius:2px}
+.wl .da{width:10px;height:3px;background:var(--ac);border-radius:2px}
+.cw{margin:44px 0;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:24px}
+.cw figcaption{font-family:var(--fd);font-size:12px;color:var(--td);margin-top:12px;text-align:center}
+.ct{width:100%;border-collapse:collapse;font-family:var(--fd);font-size:13px;margin:44px 0}
+.ct th{text-align:left;color:var(--td);font-weight:500;padding:8px 10px;border-bottom:1px solid var(--bd);cursor:pointer;user-select:none;white-space:nowrap}
+.ct th:hover{color:var(--t)}.ct th .sa{margin-left:4px;font-size:10px}
+.ct td{padding:10px;border-bottom:1px solid rgba(255,255,255,.03);color:var(--tm)}
+.ct tr:hover td{color:var(--t);background:rgba(255,255,255,.02)}
+.ct .n{text-align:right;font-variant-numeric:tabular-nums}
+.ct .hl{color:var(--ac);font-weight:600}
+.ct caption{caption-side:bottom;font-size:12px;color:var(--td);padding-top:12px;text-align:left;font-family:var(--fd)}
+.tt{padding:14px;background:var(--card);border:1px solid var(--bd);border-radius:10px;margin-bottom:18px}
+.tt h4{font-size:13px;color:var(--tm);margin-bottom:10px;font-weight:500}
+.tt .ti{display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;font-size:12px;line-height:1.5;color:var(--td);transition:color .4s}
+.tt .ti.u{color:var(--t)}
+.tt .ti .ic{flex-shrink:0;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--bd);display:flex;align-items:center;justify-content:center;transition:all .4s;font-size:10px;font-family:var(--fd)}
+.tt .ti.u .ic{border-color:var(--ac);background:var(--acd);color:var(--ac)}
+.rc{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:10px;cursor:pointer;font-family:var(--fd);font-size:13px;transition:border-color .2s}
+.rc:hover{border-color:var(--ac)}
+.rc .q{color:var(--tm);margin-bottom:6px;line-height:1.5}
+.rc .a{color:var(--ac);display:none;line-height:1.5}
+.rc.flip .a{display:block}.rc.flip .q{display:none}
+.rc .hp{font-size:11px;color:var(--td);margin-top:4px}
+.cm{margin:18px 0}.cm figcaption{font-family:var(--fd);font-size:11px;color:var(--td);margin-top:6px;text-align:center}
+.br{margin:32px 0;padding:22px;background:var(--card);border:1px solid var(--bd);border-radius:10px;opacity:0;transform:scale(.97);transition:opacity .5s,transform .5s}
+.br.vis{opacity:1;transform:scale(1)}
+.br h3{font-size:14px;color:var(--ac);margin-bottom:8px;font-weight:600}
+.br p{font-size:14px;color:var(--tm);line-height:1.6;margin-bottom:8px}
+.rv{opacity:0;transform:translateY(20px);transition:opacity .5s,transform .5s}.rv.vis{opacity:1;transform:translateY(0)}
+#foot{max-width:var(--mw);margin:0 auto;padding:36px 24px;border-top:1px solid var(--bd);font-family:var(--fd);font-size:13px;color:var(--td)}
+#foot .cits{margin-bottom:14px;line-height:1.8;list-style:none;counter-reset:c}
+#foot .cits li{counter-increment:c;margin-bottom:3px}
+#foot .cits li::before{content:"["counter(c)"] ";color:var(--tm)}
+#foot .fl{display:flex;gap:16px;align-items:center}
+#foot .tp{color:var(--ac);cursor:pointer;background:none;border:none;font-family:var(--fd);font-size:13px;padding:0}
+@media(prefers-reduced-motion:reduce){
+  *{transition-duration:0s!important;animation-duration:0s!important}
+  .br,.rv{opacity:1;transform:none}
+  .spectrum .fl{transition:none}
+}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<nav id="topbar">
+  <a class="hm" href="https://iggym.github.io/scaling-ai-systems/">Home</a>
+  <span class="bc">/ Articles / <strong>The Audit Bill Nobody Budgeted</strong></span>
+  <span class="rt">8 min read</span>
+  <button id="ham" aria-label="Open sidebar">&#9776;</button>
+</nav>
+<div id="ov"></div>
+
+<header id="hero">
+  <h1>The Audit Bill Nobody Budgeted</h1>
+  <p class="rf">AI compliance at scale is an infrastructure cost that compounds with time and decision volume — and by the time it surfaces in legal's budget, retrofitting costs an order of magnitude more than building it in would have.</p>
+  <div class="spectrum" role="img" aria-label="Spectrum showing shift from legal problem to infrastructure cost">
+    <span class="lb l">Legal review</span>
+    <div class="tk"><div class="fl"></div><div class="dt"></div></div>
+    <span class="lb r">Infra cost</span>
+  </div>
+</header>
+
+<div id="layout">
+<main id="main">
+
+  <!-- Opening -->
+  <section class="sec" id="s-open">
+    <p>On February 2, 2025, the EU AI Act's prohibited-practices provisions became enforceable. Any company whose AI system touches EU citizens — hiring, credit, insurance, education admission — faces penalties up to €35 million or 7% of global annual turnover. The fine wasn't what broke people's quarter.</p>
+    <p>What broke the quarter was what teams found when they tried to prove compliance. Their logging infrastructure — the system that would let them demonstrate, decision by decision, that their hiring algorithm wasn't performing social scoring, that their credit model wasn't discriminating on protected characteristics — didn't exist at the granularity Article 12 requires. Not "needed tuning." <span class="ma"></span> Didn't exist. Teams had inference metrics, latency dashboards, error-rate alerts. Nothing that could reconstruct a specific decision made fourteen months ago with the input features, model version, and confidence score that produced it.</p>
+  </section>
+
+  <!-- Beat 1 reveal -->
+  <div class="br" id="br1">
+    <h3>What Teams Had vs. What Regulators Need</h3>
+    <p><span class="mb"></span> <strong>Pilot-scale observability:</strong> latency p99, error rate, throughput, token cost. Retained 7–30 days. Rolled on volume threshold.</p>
+    <p><span class="ma"></span> <strong>Regulatory audit trail:</strong> per-decision input features, model version hash, output, confidence, human-override flag, decision path. Retained 1–7 years. Tamper-evident. Access-controlled.</p>
+    <p>Different systems. Different schemas. Different cost curves. One fits in a Datadog line item. The other is its own storage tier.</p>
+  </div>
+
+  <!-- Bold reframe section -->
+  <section class="sec rv" id="s-reframe">
+    <h2>The Real Bill Arrives</h2>
+    <p>AI compliance at scale is an infrastructure cost that compounds with time and decision volume. By the time it surfaces in legal's budget, retrofitting costs an order of magnitude more than building it in would have. The governance problem is real. The infrastructure problem is what blows the budget.</p>
+    <p>The regulator doesn't ask whether your model is fair. They ask whether you can prove it was fair — at volume, retroactively, for every decision your system made in the retention period your jurisdiction requires.</p>
+  </section>
+
+  <!-- Pull quote 1 -->
+  <div class="pq" id="pq1">
+    The regulator doesn't ask whether your model is fair. They ask whether you can prove it was fair — at volume, retroactively, for every decision your system made.
+    <div class="sr">
+      <a href="#" id="pq1x" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.425 11.24H16.17l-5.28-6.86-6.04 6.86H2.54l7.73-8.835L2.02 2.25h6.64l4.77 6.23 4.81-6.23zm-1.18 16.94h1.83L7.56 4.86H5.6l11.46 14.33z"/></svg> Post</a>
+      <a href="#" id="pq1li" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg> Share</a>
+    </div>
+  </div>
+
+  <!-- Cost anatomy section -->
+  <section class="sec rv" id="s-cost">
+    <h2>Five Kilobytes Per Decision</h2>
+    <p>Consider a high-risk AI system making 1 million decisions per day. A mid-size lending platform. A hiring-screening tool at a large employer. An insurance pricing engine at a regional carrier.</p>
+    <p>Under EU AI Act Article 12, each decision requires a log capturing: input features, model version hash, output, confidence score, human-override flag, decision path, and timestamp. Five kilobytes of structured data per decision is conservative — implementations with full feature attribution hit 8–12 KB.</p>
+    <p>At 1 million decisions daily, that's 5 GB of audit logs every day. With the three-year retention period standard for employment and credit decisions under EU data protection law, you accumulate 5.5 terabytes of queryable audit data. In Elasticsearch or a comparable hot-storage tier at $0.20 per GB per month — including indexing, replication, and query readiness — that's $1,095 per month just to hold the audit trail. <span class="ma"></span></p>
+    <p>Storage is the cheap part.</p>
+    <p>Under the EU AI Act, high-risk systems require human oversight for specific decision categories: credit denials, hiring rejections, insurance claim flags. Even at a conservative flag rate of 0.0005% — five decisions per million — you generate five human reviews per day. At a loaded cost of $60 per review (compliance analyst time, documentation, sign-off workflow), that's $9,000 per month in human-in-the-loop compliance review.</p>
+    <p>Your monthly inference bill for 1 million daily decisions at GPT-4o-mini pricing runs approximately $7,500.</p>
+  </section>
+
+  <!-- Pull quote 2 -->
+  <div class="pq" id="pq2">
+    The audit infrastructure now exceeds the inference it audits — $10,095/mo vs $7,500/mo at 1M decisions/day. Nobody budgeted for it because it was "a compliance thing."
+    <div class="sr">
+      <a href="#" id="pq2x" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.425 11.24H16.17l-5.28-6.86-6.04 6.86H2.54l7.73-8.835L2.02 2.25h6.64l4.77 6.23 4.81-6.23zm-1.18 16.94h1.83L7.56 4.86H5.6l11.46 14.33z"/></svg> Post</a>
+      <a href="#" id="pq2li" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg> Share</a>
+    </div>
+  </div>
+
+  <!-- Centerpiece widget -->
+  <figure class="ww">
+    <h3>The Compounding Audit Bill</h3>
+    <canvas id="cc"></canvas>
+    <div class="wc">
+      <label>Daily decisions <input type="range" id="volSlider" min="4" max="7.3" step="0.1" value="6"> <span id="volLabel">1M</span></label>
+      <div class="rb">
+        <button data-r="1" class="on">1 yr</button>
+        <button data-r="3">3 yr</button>
+        <button data-r="7">7 yr</button>
+      </div>
+    </div>
+    <div class="wl">
+      <span><span class="di"></span> Inference</span>
+      <span><span class="da"></span> Total audit</span>
+    </div>
+    <figcaption>Drag the lever — watch audit compound</figcaption>
+  </figure>
+
+  <!-- More cost anatomy -->
+  <section class="sec rv" id="s-scale">
+    <p>At 100,000 decisions per day — early production scale — the numbers feel manageable. 500 MB of logs daily. 550 GB over three years. $110/month in hot storage. Roughly fifty flagged decisions per month, costing $3,000 in review. Total audit: ~$3,100/month against an inference bill of ~$750/month. <span class="mb"></span> Audit already costs 4× inference, but the absolute dollars hide inside a compliance team's headcount line.</p>
+    <p>At 1 million decisions per day, the math changes character. $1,095 in storage. $9,000 in review. $10,095 total against $7,500 in inference. Audit exceeds inference, and the gap widens each month as retained data accumulates.</p>
+    <p>At 10 million decisions per day — a large employer, a national-scale lending platform — storage hits $10,950/month. Human review: $90,000/month. Inference: $75,000/month. <span class="ma"></span> The audit bill runs $100,950 versus $75,000 for the model. You're spending 34% more on proving decisions than on making them.</p>
+    <p>When you see "$1,095/month for audit storage" as a single line item, it reads like a rounding error beside a $7,500 inference bill. Decompose it — 5 KB × 1M decisions × 365 days × 3 years × $0.20/GB — and the compounding structure becomes legible. Chunking a cost into its components isn't a presentation trick; it's how working memory converts an opaque total into a system you can act on.</p>
+  </section>
+
+  <!-- Animated cost chart -->
+  <figure class="cw rv" id="chartWrap">
+    <svg id="sc" viewBox="0 0 600 260" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
+      <defs>
+        <linearGradient id="gA" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ff6b35" stop-opacity=".3"/><stop offset="100%" stop-color="#ff6b35" stop-opacity=".02"/></linearGradient>
+      </defs>
+      <text x="300" y="14" text-anchor="middle" fill="#5e5d5b" font-family="Space Grotesk,sans-serif" font-size="11">Monthly cost by decision volume (3-year retention)</text>
+      <!-- axes -->
+      <line x1="60" y1="230" x2="580" y2="230" stroke="#252535" stroke-width="1"/>
+      <line x1="60" y1="30" x2="60" y2="230" stroke="#252535" stroke-width="1"/>
+      <text x="60" y="248" fill="#5e5d5b" font-family="Space Grotesk" font-size="10">100K</text>
+      <text x="200" y="248" fill="#5e5d5b" font-family="Space Grotesk" font-size="10">500K</text>
+      <text x="370" y="248" fill="#5e5d5b" font-family="Space Grotesk" font-size="10">2M</text>
+      <text x="530" y="248" fill="#5e5d5b" font-family="Space Grotesk" font-size="10">10M</text>
+      <text x="20" y="140" fill="#5e5d5b" font-family="Space Grotesk" font-size="10" transform="rotate(-90,20,140)">$/month</text>
+      <!-- gridlines -->
+      <line x1="60" y1="180" x2="580" y2="180" stroke="#252535" stroke-width=".5" stroke-dasharray="4,4"/>
+      <line x1="60" y1="130" x2="580" y2="130" stroke="#252535" stroke-width=".5" stroke-dasharray="4,4"/>
+      <line x1="60" y1="80" x2="580" y2="80" stroke="#252535" stroke-width=".5" stroke-dasharray="4,4"/>
+      <!-- inference line (green) -->
+      <polyline id="infLine" points="" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round"/>
+      <!-- audit area -->
+      <polygon id="audArea" points="" fill="url(#gA)"/>
+      <!-- audit line (orange) -->
+      <polyline id="audLine" points="" fill="none" stroke="#ff6b35" stroke-width="2.5" stroke-linecap="round"/>
+      <!-- annotation -->
+      <g id="annot" opacity="0">
+        <circle cx="0" cy="0" r="5" fill="#ff6b35"/>
+        <line x1="0" y1="0" x2="30" y2="-30" stroke="#ff6b35" stroke-width="1"/>
+        <text x="32" y="-32" fill="#ff6b35" font-family="Space Grotesk" font-size="11" font-weight="600">Audit exceeds inference</text>
+      </g>
+    </svg>
+    <figcaption>Where the orange line crosses green</figcaption>
+  </figure>
+
+  <!-- Regime fractue section -->
+  <section class="sec rv" id="s-regime">
+    <h2>Regime Fracture</h2>
+    <p>Three weeks before the EU deadline, on January 23, 2025, President Trump revoked Executive Order 14110 — the Biden-era order requiring foundation model developers to report safety results to the Commerce Department. Companies that spent fourteen months building reporting infrastructure around the federal framework woke up to a compliance vacuum at the national level.</p>
+    <p>The infrastructure those companies built didn't disappear. It became a stranded asset. The engineering hours are spent; the schema assumptions are baked into production logging. When the next federal framework arrives — in eighteen months or three years — those teams will re-architect rather than extend, because the logging schema they built was shaped by a specific regulatory requirement that no longer exists. <span class="ma"></span></p>
+    <p>"Vacuum" at the federal level doesn't mean "zero everywhere." Colorado's SB 24-205 advances toward its February 2026 effective date. Illinois's AI-in-hiring statute already operates. The EU AI Act applies to any product touching EU citizens regardless of where the deploying company is domiciled. Each jurisdiction demands different logging granularity, different retention periods, different access patterns for the same decisions.</p>
+    <p>This cost isn't additive. You don't build one audit trail and present it to three regulators. You build three audit trails from the same decision volume, or you build an abstraction layer that emits jurisdiction-specific views. A company operating under the EU AI Act, Illinois state law, and Colorado's incoming regime doesn't pay 3× the single-jurisdiction cost. The integration layer itself adds engineering overhead that scales with the number of jurisdiction pairs, not the number of jurisdictions. Three jurisdictions means three integration surfaces. Five means ten. The combinatorics outrun you before the user count does.</p>
+  </section>
+
+  <!-- Beat 2 reveal -->
+  <div class="br" id="br2">
+    <h3>Jurisdiction Pairs Compound</h3>
+    <p>A single-jurisdiction audit trail costs <em>X</em> to build and maintain. Two jurisdictions: 2<em>X</em> + 1 integration surface. Three: 3<em>X</em> + 3 surfaces. Five: 5<em>X</em> + 10 surfaces. The integration surfaces each require schema mapping, retention policy divergence handling, and access-control translation. This is where the engineering hours compound — not in the per-jurisdiction cost, but in the pairwise glue.</p>
+  </div>
+
+  <!-- Pull quote 3 -->
+  <div class="pq" id="pq3">
+    Three jurisdictions means three integration surfaces. Five means ten. The combinatorics outrun you before the user count does.
+    <div class="sr">
+      <a href="#" id="pq3x" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.425 11.24H16.17l-5.28-6.86-6.04 6.86H2.54l7.73-8.835L2.02 2.25h6.64l4.77 6.23 4.81-6.23zm-1.18 16.94h1.83L7.56 4.86H5.6l11.46 14.33z"/></svg> Post</a>
+      <a href="#" id="pq3li" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg> Share</a>
+    </div>
+  </div>
+
+  <!-- Counterargument -->
+  <section class="sec rv" id="s-counter">
+    <h2>The Counterargument</h2>
+    <p>"We're not in a high-risk category. This doesn't apply to us."</p>
+    <p>The EU AI Act's Annex III lists eleven high-risk categories. Resume-screening software. Creditworthiness assessment. Educational admission scoring. Law enforcement risk profiling. Worker management and termination decisions. Biometric identification. Critical infrastructure management. Most teams building AI products that touch people's outcomes land in at least one. The boundary is wider than it appears because the Act captures systems that "materially influence" decisions, not only systems that make them autonomously. A recommendation engine that surfaces candidates to a hiring manager materially influences the hiring decision under the Act's language.</p>
+    <p>Even if you dodge the high-risk tier, the General-Purpose AI transparency obligations — documentation of training data, compute, and evaluation results — apply to any GPAI model provider operating in the EU. Your downstream customers inherit your documentation gap. You don't have to be high-risk yourself to be the reason your customer can't comply.</p>
+  </section>
+
+  <!-- Three actions -->
+  <section class="sec rv" id="s-actions">
+    <h2>Three Moves Before the Call</h2>
+    <p><strong>Price your audit trail this quarter.</strong> Calculate: daily decision volume × 5 KB per decision × required retention period in days × $0.20/GB/month for hot storage. Add: daily flag volume × $60 per review × 30 days. If that sum isn't in your engineering budget, you have a compounding hidden cost. The first regulatory inquiry is the worst time to discover it.</p>
+    <p><strong>Design for regime fragmentation now.</strong> Build a compliance logging abstraction — a thin layer that emits jurisdiction-specific granularity and retention from a single event stream — before you operate under more than one regulatory regime. The engineering cost of building this at 100K decisions/day is a fraction of the retrofit cost at 10M decisions/day. The inflection point for retrofits falls around 2 TB of stored audit data; below that, you can re-architect in place. Above it, migration alone consumes a quarter.</p>
+    <p><strong>Separate audit from observability.</strong> Your Datadog or Splunk spend covers debugging: transient errors, latency spikes, throughput. Your compliance log covers regulators: durable, access-controlled, tamper-evident records of every decision. Conflating them means paying observability-tier prices for compliance-retention durations, or losing compliance data when debug logs roll. Different systems, different cost profiles, different failure modes. Build them separately.</p>
+  </section>
+
+  <!-- Comparison table -->
+  <table class="ct rv" id="cmpTable">
+    <caption>Cost by volume — 3-year retention, $0.20/GB/mo hot storage</caption>
+    <thead>
+      <tr>
+        <th data-col="vol">Volume/day <span class="sa">↕</span></th>
+        <th data-col="inf">Inference/mo <span class="sa">↕</span></th>
+        <th data-col="sto">Audit storage/mo <span class="sa">↕</span></th>
+        <th data-col="rev">Review/mo <span class="sa">↕</span></th>
+        <th data-col="tot">Total audit/mo <span class="sa">↕</span></th>
+        <th data-col="rat">Audit÷Inference <span class="sa">↕</span></th>
+      </tr>
+    </thead>
+    <tbody id="cmpBody"></tbody>
+  </table>
+
+  <!-- CTA -->
+  <section class="sec rv" id="s-cta">
+    <p>Run this calculation in the next 24 hours: your current daily AI decision volume × 5 KB × your jurisdiction's required retention period in days × $0.20/GB/month. That number is what the regulator costs you in infrastructure — and it's growing whether you've budgeted for it or not.</p>
+  </section>
+
+</main>
+
+<aside id="side">
+
+  <!-- Three Things tracker -->
+  <div class="tt" id="tt">
+    <h4>Three Things You Didn't Know You Needed</h4>
+    <div class="ti" id="t1"><div class="ic">1</div><span>Audit compounds with retention time</span></div>
+    <div class="ti" id="t2"><div class="ic">2</div><span>Regime changes = re-architecture</span></div>
+    <div class="ti" id="t3"><div class="ic">3</div><span>Multi-jurisdiction is multiplicative</span></div>
+  </div>
+
+  <!-- Recall cards -->
+  <h4 style="font-family:var(--fd);font-size:13px;color:var(--tm);margin:18px 0 10px;font-weight:500">Recall Practice</h4>
+  <div class="rc" onclick="this.classList.toggle('flip')">
+    <div class="q">At 1M decisions/day with 3yr retention, how much queryable audit data accumulates?</div>
+    <div class="a">5.5 terabytes (5 GB/day × 365 × 3)</div>
+    <div class="hp">Click to reveal</div>
+  </div>
+  <div class="rc" onclick="this.classList.toggle('flip')">
+    <div class="q">At 1M decisions/day, what costs more — audit infrastructure or inference?</div>
+    <div class="a">Audit: ~$10,095/mo vs. Inference: ~$7,500/mo — audit exceeds inference by 35%</div>
+    <div class="hp">Click to reveal</div>
+  </div>
+  <div class="rc" onclick="this.classList.toggle('flip')">
+    <div class="q">How does multi-jurisdiction compliance cost scale?</div>
+    <div class="a">With jurisdiction pairs, not count — 3 jurisdictions = 3 integration surfaces, 5 = 10</div>
+    <div class="hp">Click to reveal</div>
+  </div>
+
+  <!-- Concept map -->
+  <figure class="cm">
+    <svg viewBox="0 0 260 200" xmlns="http://www.w3.org/2000/svg">
+      <text x="130" y="18" text-anchor="middle" fill="#9b9a97" font-family="Space Grotesk,sans-serif" font-size="11" font-weight="600">Compliance at Scale</text>
+      <rect x="80" y="26" width="100" height="24" rx="6" fill="rgba(255,107,53,.14)" stroke="#ff6b35" stroke-width="1"/>
+      <text x="130" y="42" text-anchor="middle" fill="#ff6b35" font-family="Space Grotesk" font-size="10">Logging Infra</text>
+      <line x1="130" y1="50" x2="60" y2="80" stroke="#252535" stroke-width="1"/>
+      <line x1="130" y1="50" x2="200" y2="80" stroke="#252535" stroke-width="1"/>
+      <rect x="10" y="78" width="100" height="22" rx="5" fill="rgba(52,211,153,.14)" stroke="#34d399" stroke-width="1"/>
+      <text x="60" y="93" text-anchor="middle" fill="#34d399" font-family="Space Grotesk" font-size="9">Storage (compounds)</text>
+      <rect x="150" y="78" width="100" height="22" rx="5" fill="rgba(96,165,250,.14)" stroke="#60a5fa" stroke-width="1"/>
+      <text x="200" y="93" text-anchor="middle" fill="#60a5fa" font-family="Space Grotesk" font-size="9">Review (linear)</text>
+      <line x1="60" y1="100" x2="60" y2="125" stroke="#252535" stroke-width="1"/>
+      <rect x="5" y="123" width="110" height="22" rx="5" fill="rgba(248,113,113,.14)" stroke="#f87171" stroke-width="1"/>
+      <text x="60" y="138" text-anchor="middle" fill="#f87171" font-family="Space Grotesk" font-size="9">Regime fragmentation</text>
+      <line x1="60" y1="145" x2="130" y2="165" stroke="#252535" stroke-width="1"/>
+      <rect x="75" y="160" width="110" height="22" rx="5" fill="rgba(255,107,53,.08)" stroke="#ff6b35" stroke-width="1" stroke-dasharray="3,2"/>
+      <text x="130" y="175" text-anchor="middle" fill="#ff6b35" font-family="Space Grotesk" font-size="9">Retrofit = 10× build-in</text>
+    </svg>
+    <figcaption>How the cost dynamics connect</figcaption>
+  </figure>
+
+</aside>
+</div>
+
+<footer id="foot">
+  <ol class="cits">
+    <li>EU AI Act, Regulation (EU) 2024/1689, Article 5 (prohibited practices), enforceable February 2, 2025</li>
+    <li>EU AI Act, Article 12 (logging requirements for high-risk AI systems)</li>
+    <li>EU AI Act, Article 99 (penalties: up to €35M or 7% global turnover for prohibited-practices violations)</li>
+    <li>EU AI Act, Annex III (eleven high-risk AI system categories)</li>
+    <li>Executive Order 14110, "Safe, Secure, and Trustworthy AI," revoked January 23, 2025</li>
+    <li>Colorado SB 24-205 (Colorado AI Act), effective February 1, 2026</li>
+    <li>Illinois HB 3771 (AI in Hiring Act)</li>
+  </ol>
+  <div class="fl">
+    <a href="https://iggym.github.io/scaling-ai-systems/">Home</a>
+    <button class="tp" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑ Top</button>
+  </div>
+</footer>
+
+<script>
+(function(){
+  const PAGE_URL='https://iggym.github.io/scaling-ai-systems/articles/the-audit-bill-nobody-budgeted.html';
+
+  // ── reduced motion ──
+  const prefersRM=window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+  // ── progress bar ──
+  const prog=document.getElementById('progress');
+  window.addEventListener('scroll',()=>{
+    const h=document.documentElement.scrollHeight-window.innerHeight;
+    prog.style.width=h>0?(window.scrollY/h*100)+'%':'0%';
+  },{passive:true});
+
+  // ── hamburger ──
+  const ham=document.getElementById('ham'),side=document.getElementById('side'),ov=document.getElementById('ov');
+  function toggleSide(){side.classList.toggle('open');ov.classList.toggle('open')}
+  ham.addEventListener('click',toggleSide);
+  ov.addEventListener('click',toggleSide);
+
+  // ── share links ──
+  function mkShare(id,text){
+    const tx=encodeURIComponent(text+'\n\n'+PAGE_URL);
+    const li=encodeURIComponent(text+'\n\n'+PAGE_URL);
+    const xe=document.getElementById(id+'x');
+    const le=document.getElementById(id+'li');
+    if(xe)xe.href='https://x.com/intent/tweet?text='+tx;
+    if(le)le.href='https://www.linkedin.com/sharing/share-offsite/?url='+encodeURIComponent(PAGE_URL);
+  }
+  mkShare('pq1','The regulator doesn\'t ask whether your model is fair. They ask whether you can prove it was fair — at volume, retroactively.');
+  mkShare('pq2','Audit infrastructure exceeds inference at scale: $10,095/mo vs $7,500/mo at 1M decisions/day.');
+  mkShare('pq3','Three jurisdictions = three integration surfaces. Five = ten. The combinatorics outrun you before the user count does.');
+
+  // ── IntersectionObserver for reveals ──
+  const io=new IntersectionObserver((es)=>{
+    es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('vis')});
+  },{threshold:0.15});
+  document.querySelectorAll('.rv,.br').forEach(el=>io.observe(el));
+
+  // ── Three things tracker ──
+  const t1=document.getElementById('t1'),t2=document.getElementById('t2'),t3=document.getElementById('t3');
+  const sCost=document.getElementById('s-cost'),sRegime=document.getElementById('s-regime'),sScale=document.getElementById('s-scale');
+  const tio=new IntersectionObserver((es)=>{
+    es.forEach(e=>{
+      if(!e.isIntersecting)return;
+      if(e.target===sCost||e.target===sScale)t1.classList.add('u');
+      if(e.target===sRegime)t2.classList.add('u');
+      if(e.target===sRegime&&e.intersectionRatio>0.3)t3.classList.add('u');
+    });
+  },{threshold:[0.1,0.3]});
+  [sCost,sScale,sRegime].forEach(el=>{if(el)tio.observe(el)});
+
+  // ── Cost widget ──
+  const canvas=document.getElementById('cc');
+  const ctx=canvas.getContext('2d');
+  const volSlider=document.getElementById('volSlider');
+  const volLabel=document.getElementById('volLabel');
+  const retBtns=document.querySelectorAll('.rb button');
+  let retYears=3;
+
+  function fmtVol(v){return v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(0)+'K':v.toFixed(0)}
+  function fmt$(n){return n>=1e6?'$'+(n/1e6).toFixed(1)+'M':n>=1e3?'$'+(n/1e3).toFixed(0)+'K':'$'+n.toFixed(0)}
+
+  function inferenceMonthly(vol){return vol*30*0.00025}
+  function auditStorageMonthly(vol,retY,months){
+    const dailyGB=vol*5/1e6;
+    const maxMo=retY*12;
+    const effMo=Math.min(months,maxMo);
+    return dailyGB*30*effMo*0.20;
+  }
+  function auditReviewMonthly(vol){return vol*0.000005*60*30}
+  function totalAuditMonthly(vol,retY,months){return auditStorageMonthly(vol,retY,months)+auditReviewMonthly(vol)}
+
+  function drawWidget(){
+    const dpr=window.devicePixelRatio||1;
+    const rect=canvas.getBoundingClientRect();
+    canvas.width=rect.width*dpr;
+    canvas.height=rect.height*dpr;
+    ctx.scale(dpr,dpr);
+    const W=rect.width,H=rect.height;
+    const pad={l:60,r:20,t:20,b:40};
+    const vol=Math.pow(10,parseFloat(volSlider.value));
+    volLabel.textContent=fmtVol(vol);
+
+    const maxMo=60;
+    const infM=inferenceMonthly(vol);
+    const audMax=totalAuditMonthly(vol,retYears,maxMo);
+    const yMax=Math.max(infM,audMax)*1.15;
+
+    ctx.clearRect(0,0,W,H);
+
+    // grid
+    ctx.strokeStyle='#252535';ctx.lineWidth=1;
+    for(let i=0;i<=4;i++){
+      const y=pad.t+(H-pad.t-pad.b)*i/4;
+      ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+      ctx.fillStyle='#5e5d5b';ctx.font='11px Space Grotesk,sans-serif';ctx.textAlign='right';
+      ctx.fillText(fmt$(yMax*(1-i/4)),pad.l-8,y+4);
+    }
+
+    // x labels
+    ctx.fillStyle='#5e5d5b';ctx.font='11px Space Grotesk,sans-serif';ctx.textAlign='center';
+    for(let m of[0,12,24,36,48,60]){
+      const x=pad.l+(W-pad.l-pad.r)*m/maxMo;
+      ctx.fillText(m+'mo',x,H-pad.b+18);
+    }
+
+    // inference line (flat)
+    const infY=pad.t+(H-pad.t-pad.b)*(1-infM/yMax);
+    ctx.strokeStyle='#34d399';ctx.lineWidth=2.5;ctx.setLineDash([]);
+    ctx.beginPath();ctx.moveTo(pad.l,infY);ctx.lineTo(W-pad.r,infY);ctx.stroke();
+    ctx.fillStyle='#34d399';ctx.font='bold 11px Space Grotesk';ctx.textAlign='left';
+    ctx.fillText('Inference: '+fmt$(infM)+'/mo',W-pad.r-120,infY-8);
+
+    // audit line
+    ctx.strokeStyle='#ff6b35';ctx.lineWidth=2.5;ctx.beginPath();
+    let first=true;
+    for(let m=0;m<=maxMo;m++){
+      const aud=totalAuditMonthly(vol,retYears,m);
+      const x=pad.l+(W-pad.l-pad.r)*m/maxMo;
+      const y=pad.t+(H-pad.t-pad.b)*(1-aud/yMax);
+      if(first){ctx.moveTo(x,y);first=false}else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+
+    // audit area fill
+    ctx.fillStyle='rgba(255,107,53,.08)';ctx.beginPath();
+    ctx.moveTo(pad.l,pad.t+(H-pad.t-pad.b)*(1-totalAuditMonthly(vol,retYears,0)/yMax));
+    for(let m=1;m<=maxMo;m++){
+      const aud=totalAuditMonthly(vol,retYears,m);
+      const x=pad.l+(W-pad.l-pad.r)*m/maxMo;
+      const y=pad.t+(H-pad.t-pad.b)*(1-aud/yMax);
+      ctx.lineTo(x,y);
+    }
+    ctx.lineTo(W-pad.r,H-pad.b);ctx.lineTo(pad.l,H-pad.b);ctx.closePath();ctx.fill();
+
+    // steady state annotation
+    const ssMo=retYears*12;
+    if(ssMo<=maxMo){
+      const ssX=pad.l+(W-pad.l-pad.r)*ssMo/maxMo;
+      const ssAud=totalAuditMonthly(vol,retYears,ssMo);
+      const ssY=pad.t+(H-pad.t-pad.b)*(1-ssAud/yMax);
+      ctx.setLineDash([4,4]);ctx.strokeStyle='#ff6b35';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(ssX,pad.t);ctx.lineTo(ssX,H-pad.b);ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle='#ff6b35';ctx.font='bold 10px Space Grotesk';ctx.textAlign='center';
+      ctx.fillText('Steady state',ssX,pad.t+12);
+      ctx.fillText(fmt$(ssAud)+'/mo',ssX,ssY-10);
+    }
+  }
+
+  volSlider.addEventListener('input',drawWidget);
+  retBtns.forEach(b=>b.addEventListener('click',()=>{
+    retBtns.forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    retYears=parseInt(b.dataset.r);
+    drawWidget();
+  }));
+  window.addEventListener('resize',drawWidget);
+  drawWidget();
+
+  // ── Animated SVG chart ──
+  function drawScaleChart(){
+    const infL=document.getElementById('infLine');
+    const audL=document.getElementById('audLine');
+    const audA=document.getElementById('audArea');
+    const ann=document.getElementById('annot');
+    // x: log scale 100K(60) to 10M(580) → 4 to 7 in log10
+    // y: 0(230) to 120K(30)
+    const yMax=120000;
+    function xP(v){const l=Math.log10(v);return 60+(580-60)*(l-4)/(7.3-4)}
+    function yP(c){return 230-(230-30)*c/yMax}
+    let infPts='',audPts='',areaPts='';
+    let crossX=null,crossY=null;
+    for(let l=4;l<=7.3;l+=0.1){
+      const v=Math.pow(10,l);
+      const infC=v*30*0.00025;
+      const audC=v*0.000005*60*30+v*5/1e6*365*3*0.20;
+      const x=xP(v),iy=yP(infC),ay=yP(audC);
+      infPts+=x+','+iy+' ';
+      audPts+=x+','+ay+' ';
+      if(!crossX&&audC>infC){crossX=x;crossY=ay}
+    }
+    // area: audit line + bottom
+    areaPts=audPts+xP(Math.pow(10,7.3))+',230 '+xP(Math.pow(10,4))+',230';
+    infL.setAttribute('points',infPts.trim());
+    audL.setAttribute('points',audPts.trim());
+    audA.setAttribute('points',areaPts.trim());
+    if(crossX){ann.setAttribute('transform','translate('+crossX+','+crossY+')');ann.setAttribute('opacity','1')}
+  }
+  // draw on scroll into view
+  const chartW=document.getElementById('chartWrap');
+  const cio=new IntersectionObserver((es)=>{
+    es.forEach(e=>{if(e.isIntersecting){drawScaleChart();cio.unobserve(e.target)}});
+  },{threshold:0.2});
+  if(chartW)cio.observe(chartW);
+
+  // ── Comparison table ──
+  const tableData=[
+    {vol:100000,inf:750,sto:110,rev:3000,tot:3110,rat:'4.1×'},
+    {vol:500000,inf:3750,sto:548,rev:4500,tot:5048,rat:'1.3×'},
+    {vol:1000000,inf:7500,sto:1095,rev:9000,tot:10095,rat:'1.3×'},
+    {vol:5000000,inf:37500,sto:5475,rev:45000,tot:50475,rat:'1.3×'},
+    {vol:10000000,inf:75000,sto:10950,rev:90000,tot:100950,rat:'1.3×'}
+  ];
+  const tbody=document.getElementById('cmpBody');
+  function renderTable(data){
+    tbody.innerHTML='';
+    data.forEach(d=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${fmtVol(d.vol)}</td><td class="n">${fmt$(d.inf)}</td><td class="n">${fmt$(d.sto)}</td><td class="n">${fmt$(d.rev)}</td><td class="n hl">${fmt$(d.tot)}</td><td class="n hl">${d.rat}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+  renderTable(tableData);
+  // sort
+  let sortDir=1;
+  document.querySelectorAll('.ct th').forEach(th=>{
+    th.addEventListener('click',()=>{
+      const col=th.dataset.col;
+      if(!col)return;
+      const sorted=[...tableData].sort((a,b)=>(a[col]-b[col])*sortDir);
+      sortDir*=-1;
+      renderTable(sorted);
+    });
+  });
+
+})();
+</script>
+</body>
+</html>

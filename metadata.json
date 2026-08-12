@@ -129,5 +129,45 @@
   "reading_time_minutes": 6,
   "pinned": false,
   "research_window": "2026-02-11 through 2026-03-25"
-}]
+}, {
+  "id": "3001",
+  "slug": "three-team-trap",
+  "title": "The Three-Team Trap",
+  "hook": "The platform-team inflection arrives when duplicated AI infrastructure across teams costs more than a platform team — and that crossover happens at three teams, not ten.",
+  "path": "articles/three-team-trap.html",
+  "date": "2025-03-15",
+  "status": "published",
+  "format": "case-study",
+  "tags": ["org-design", "platform-team", "ai-infrastructure", "scaling"],
+  "reading_time_minutes": 7,
+  "pinned": false,
+  "research_window": "2025-02-08 to 2025-03-15"
+}, {
+  "id": "4827",
+  "slug": "the-audit-bill-nobody-budgeted",
+  "title": "The Audit Bill Nobody Budgeted",
+  "hook": "AI compliance at scale is an infrastructure cost that compounds with time and volume — and by the time it surfaces in legal's budget, retrofitting costs 10x what building it in would have.",
+  "path": "articles/the-audit-bill-nobody-budgeted.html",
+  "date": "2025-02-18",
+  "status": "published",
+  "format": "case-study",
+  "tags": ["compliance-at-scale", "eu-ai-act", "audit-infrastructure", "cost-economics"],
+  "reading_time_minutes": 8,
+  "pinned": false,
+  "research_window": "2025-01-14 through 2025-02-18"
+},{
+  "id": "0314",
+  "slug": "five-teams-zero-owners",
+  "title": "Five Teams, Zero Owners",
+  "hook": "Your org chart assumes one owner per system. Agents have five.",
+  "path": "articles/five-teams-zero-owners.html",
+  "date": "2025-03-14",
+  "status": "published",
+  "format": "case-study",
+  "tags": ["org-design", "ai-agents", "coordination-cost", "scale-problems"],
+  "reading_time_minutes": 6,
+  "pinned": false,
+  "research_window": "2025-02-07 to 2025-03-14"
+}
+  ]
 }

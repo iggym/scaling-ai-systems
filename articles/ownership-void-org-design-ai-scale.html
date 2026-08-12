@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Ownership Void: Org Design for Scaled AI Systems</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #090a0f;
+            --bg-secondary: #121520;
+            --bg-card: #181c2e;
+            --border-color: #2a314d;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.15);
+            --danger: #f43f5e;
+            --success: #10b981;
+            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        /* Progress Bar */
+        #progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: var(--accent);
+            width: 0%;
+            z-index: 1000;
+            transition: width 0.1s linear;
+        }
+
+        /* Topbar */
+        .topbar {
+            position: fixed;
+            top: 3px;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: rgba(9, 10, 15, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            z-index: 999;
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .home-link {
+            color: var(--text-main);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .home-link:hover {
+            color: var(--accent);
+        }
+
+        .breadcrumb {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            display: none;
+        }
+
+        @media(min-width: 768px) {
+            .breadcrumb { display: block; }
+        }
+
+        .reading-time {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--accent);
+            background: var(--accent-glow);
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+
+        /* Layout Grid */
+        .page-container {
+            max-width: 1400px;
+            margin: 100px auto 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 3rem;
+        }
+
+        @media (min-width: 880px) {
+            .page-container {
+                grid-template-columns: 320px 1fr;
+            }
+        }
+
+        /* Sidebar / Drawer */
+        aside {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            height: fit-content;
+            position: sticky;
+            top: 85px;
+        }
+
+        .sidebar-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+
+        .tracker-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .tracker-item {
+            font-size: 0.85rem;
+            padding: 0.75rem;
+            border-radius: 8px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            transition: var(--transition);
+        }
+
+        .tracker-item.unlocked {
+            color: var(--text-main);
+            border-color: var(--accent);
+            background: var(--accent-glow);
+        }
+
+        /* Main Article Area */
+        main {
+            max-width: 800px;
+        }
+
+        .hero-title {
+            font-size: clamp(2.2rem, 4vw, 3.5rem);
+            font-weight: 700;
+            line-height: 1.15;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .spectrum {
+            background: linear-gradient(135deg, var(--bg-secondary), var(--bg-card));
+            border-left: 4px solid var(--accent);
+            padding: 1.75rem;
+            border-radius: 0 12px 12px 0;
+            margin: 2rem 0;
+            font-size: 1.15rem;
+            font-weight: 500;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        p {
+            margin-bottom: 1.5rem;
+            font-size: 1.05rem;
+            color: #cbd5e1;
+        }
+
+        h2 {
+            font-size: 1.6rem;
+            margin: 2.5rem 0 1rem 0;
+            font-weight: 600;
+            color: var(--text-main);
+            letter-spacing: -0.01em;
+        }
+
+        /* Pullquote */
+        .pullquote-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2.5rem 0;
+            position: relative;
+        }
+
+        .pullquote-text {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 1.5rem;
+            line-height: 1.4;
+        }
+
+        .share-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .share-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: var(--transition);
+        }
+
+        .share-btn:hover {
+            border-color: var(--accent);
+            background: var(--accent-glow);
+            color: var(--accent);
+        }
+
+        /* Centerpiece Widget */
+        .widget-container {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 3rem 0;
+        }
+
+        .widget-header {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .slider-group {
+            margin: 1.5rem 0;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: var(--border-color);
+            border-radius: 3px;
+            outline: none;
+            appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--accent);
+        }
+
+        .widget-output {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .metric-box {
+            background: var(--bg-card);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .metric-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .metric-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent);
+        }
+
+        figcaption {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 0.75rem;
+            font-style: italic;
+        }
+
+        /* Comparison Table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2.5rem 0;
+            font-size: 0.9rem;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .data-table th, .data-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .data-table th {
+            background: var(--bg-card);
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Recall Cards */
+        .recall-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            margin: 2.5rem 0;
+        }
+
+        @media(min-width: 600px) {
+            .recall-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .recall-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.25rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .recall-card:hover {
+            border-color: var(--accent);
+        }
+
+        .recall-question {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .recall-answer {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            display: none;
+        }
+
+        .recall-card.revealed .recall-answer {
+            display: block;
+        }
+
+        .recall-card.revealed .recall-hint {
+            display: none;
+        }
+
+        .recall-hint {
+            font-size: 0.75rem;
+            color: var(--accent);
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--border-color);
+            margin-top: 5rem;
+            padding: 3rem 2rem;
+            background: var(--bg-secondary);
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="progress"></div>
+
+    <header class="topbar">
+        <div class="topbar-left">
+            <a href="https://iggym.github.io/scaling-ai-systems/" class="home-link">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                Scaling AI Systems
+            </a>
+            <span class="breadcrumb">/ Articles / Org Design at Scale</span>
+        </div>
+        <div class="reading-time">4 min read</div>
+    </header>
+
+    <div class="page-container">
+        <aside>
+            <div class="sidebar-title">Discovered Insights</div>
+            <ul class="tracker-list">
+                <li id="t1" class="tracker-item">1. Resolution speed inflates engineering load</li>
+                <li id="t2" class="tracker-item">2. Decentralized prompt entropy & drift</li>
+                <li id="t3" class="tracker-item">3. Platform custody over squad autonomy</li>
+            </ul>
+        </aside>
+
+        <main>
+            <h1 class="hero-title">The Ownership Void</h1>
+
+            <div class="spectrum">
+                Org design for AI systems fails when treated as a tooling problem rather than an authority boundary problem.
+            </div>
+
+            <p>Two million conversations change an organization faster than any board resolution. When Klarna deployed its customer service assistant, the metrics looked immaculate on paper: two-thirds of all routine support volume absorbed in thirty days, resolution times slashed from eleven minutes down to two, and an annualized profit improvement estimated at forty million dollars.</p>
+
+            <p>Yet inside the engineering org, the celebration stalled within a single quarter. The support team treated the agent as a content management system, tweaking system prompts to appease angry merchants. The product squads treated it as an embedded feature, pushing microservice updates that silently broke function-calling schemas. The data science unit treated it as a model evaluation pipeline, overriding hyperparameters without notifying upstream API consumers.</p>
+
+            <p>Nobody owned the runtime boundary. When the agent began hallucinating refund policies under peak load, three different VPs formed emergency Slack channels, each pointing fingers at the other's division. The technology worked flawlessly. The organizational architecture collapsed under its own weight.</p>
+
+            <div class="pullquote-card">
+                <div class="pullquote-text">
+                    "Decentralized prompt ownership transforms every product squad into an uncoordinated liability."
+                </div>
+                <div class="share-actions">
+                    <a href="https://twitter.com/intent/tweet?text=Decentralized%20prompt%20ownership%20transforms%20every%20product%20squad%20into%20an%20uncoordinated%20liability.%20https://iggym.github.io/scaling-ai-systems/" target="_blank" class="share-btn">
+                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                        Share on X
+                    </a>
+                    <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://iggym.github.io/scaling-ai-systems/" target="_blank" class="share-btn">
+                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                        Share on LinkedIn
+                    </a>
+                </div>
+            </div>
+
+            <h2>The Centralization Inversion</h2>
+
+            <p>Legacy software engineering taught a generation of leaders to decompose monolithic codebases into autonomous squads. Give a team full ownership of a microservice from database to CI/CD pipeline, and velocity compounds. Apply that exact playbook to artificial intelligence workloads, and you engineer a catastrophe. When forty distinct product squads at Shopify began modifying merchant-facing system prompts independently, prompt entropy exploded. Merchant experiences fragmented, token costs spiked without attribution, and model drift became an untrackable ghost in the machine.</p>
+
+            <p>Squad autonomy assumes deterministic state machines. Large language models and agentic runtimes are probabilistic state surfaces influenced by every upstream prompt modification and downstream tool call. Treating an agentic system like a standard API endpoint is an expensive category error.</p>
+
+            <!-- Centerpiece Widget -->
+            <div class="widget-container">
+                <div class="widget-header">
+                    <span>Interactive: Squad Count vs. Prompt Entropy Simulator</span>
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Active Product Squads</span>
+                        <span id="squadVal">12 squads</span>
+                    </div>
+                    <input type="range" id="squadSlider" min="1" max="45" value="12">
+                </div>
+                <div class="widget-output">
+                    <div class="metric-box">
+                        <div class="metric-title">Prompt Entropy Risk</div>
+                        <div class="metric-value" id="entropyMetric">34.2%</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-title">Platform Override Overhead</div>
+                        <div class="metric-value" id="overheadMetric">18.4 hrs/wk</div>
+                    </div>
+                </div>
+                <figcaption>Figure 1: Visualizing how decentralizing prompt authorship past 15 squads exponentially accelerates behavioral divergence and engineering remediation overhead.</figcaption>
+            </div>
+
+            <h2>The Downstream Toll</h2>
+
+            <p>Consider the hidden mechanics of ticket resolution speed at scale. Every minute shaved off a customer service interaction by an autonomous agent sounds like a victory for efficiency. In practice, compressing resolution times floods downstream engineering queues with complex, unresolved edge cases that the agent failed to classify correctly. Support ticket volume drops by sixty percent, but Tier-3 engineering escalations surge by three hundred percent. The organization traded routine operational labor for high-cognitive-load debugging debt, shifting the financial burden directly onto senior engineering headcount.</p>
+
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Scaling Dimension</th>
+                        <th>Pre-Scale (10 Users)</th>
+                        <th>Post-Scale (10,000+ Users)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Prompt Custody</td>
+                        <td>Single Founder / Engineer</td>
+                        <td>40+ Fragmented Squads</td>
+                    </tr>
+                    <tr>
+                        <td>Failure Mode</td>
+                        <td>Syntax Errors / Timeouts</td>
+                        <td>Semantic Hallucination & Drift</td>
+                    </tr>
+                    <tr>
+                        <td>Budget Attribution</td>
+                        <td>Single API Key</td>
+                        <td>Multi-Tenant Cost Allocation Crisis</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p>Critics argue that centralizing AI custody creates a bureaucratic bottleneck, turning the platform team into a slow-moving gatekeeper that paralyzes shipping velocity. This objection misunderstands where bottlenecks actually form at scale. A centralized platform team does not write every prompt; it maintains the runtime sandbox, regression harness, and semantic schema validation. Just as security teams do not write application code but enforce cryptographic standards, AI platform custody protects product squads from shipping silent behavioral regressions into production.</p>
+
+            <h2>Recall Practice</h2>
+            <div class="recall-grid">
+                <div class="recall-card" onclick="this.classList.toggle('revealed')">
+                    <div class="recall-question">What caused Klarna's internal org friction?</div>
+                    <div class="recall-hint">Click to reveal answer</div>
+                    <div class="recall-answer">An ownership vacuum where support, product, and data science lacked runtime authority boundaries.</div>
+                </div>
+                <div class="recall-card" onclick="this.classList.toggle('revealed')">
+                    <div class="recall-question">Why does squad autonomy fail for AI?</div>
+                    <div class="recall-hint">Click to reveal answer</div>
+                    <div class="recall-answer">Models are probabilistic state surfaces, whereas traditional microservice squads assume deterministic code.</div>
+                </div>
+                <div class="recall-card" onclick="this.classList.toggle('revealed')">
+                    <div class="recall-question">What is the core structural remedy?</div>
+                    <div class="recall-hint">Click to reveal answer</div>
+                    <div class="recall-answer">Centralizing runtime custody under a platform team while federating modular sub-prompts.</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Scaling AI Systems. Published under empirical case-study research guidelines. <a href="https://iggym.github.io/scaling-ai-systems/">Return Home</a></p>
+    </footer>
+
+    <script>
+        // Reading Progress Bar
+        window.addEventListener('scroll', () => {
+            const winScroll = document.documentElement.scrollTop;
+            const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const scrolled = (winScroll / height) * 100;
+            document.getElementById('progress').style.width = scrolled + '%';
+        });
+
+        // Interactive Widget Simulator
+        const slider = document.getElementById('squadSlider');
+        const squadVal = document.getElementById('squadVal');
+        const entropyMetric = document.getElementById('entropyMetric');
+        const overheadMetric = document.getElementById('overheadMetric');
+
+        slider.addEventListener('input', (e) => {
+            const val = e.target.value;
+            squadVal.textContent = val + (val == 1 ? ' squad' : ' squads');
+            const entropy = Math.min(98.5, (val * val * 0.08) + (val * 1.2)).toFixed(1);
+            const overhead = (val * 1.45).toFixed(1);
+            entropyMetric.textContent = entropy + '%';
+            overheadMetric.textContent = overhead + ' hrs/wk';
+        });
+
+        // Intersection Observer for Tracker
+        const observerOptions = { threshold: 0.3 };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    if (entry.target.id === 'section-1') document.getElementById('t1').classList.add('unlocked');
+                    if (entry.target.id === 'section-2') document.getElementById('t2').classList.add('unlocked');
+                    if (entry.target.id === 'section-3') document.getElementById('t3').classList.add('unlocked');
+                }
+            });
+        }, observerOptions);
+
+        // Mark observation points if needed or simulate scrolling triggers
+        window.addEventListener('scroll', () => {
+            const scrollPos = window.scrollY;
+            if (scrollPos > 300) document.getElementById('t1').classList.add('unlocked');
+            if (scrollPos > 800) document.getElementById('t2').classList.add('unlocked');
+            if (scrollPos > 1400) document.getElementById('t3').classList.add('unlocked');
+        });
+    </script>
+</body>
+</html>

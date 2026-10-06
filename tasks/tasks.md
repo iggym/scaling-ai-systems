@@ -11,7 +11,7 @@ Priority: **P0** = broken for readers now · **P1** = credibility / discoverabil
 
 ## P0 — Broken right now
 
-- [ ] **Fix mis-named article file.** `articles/five-teams-zero-owners.htmlfive-teams-zero-owners.html` should be `articles/five-teams-zero-owners.html`. `metadata.json` points to the correct name, so the card on the home page currently 404s. (`git mv` the file.)
+- [x] **Fix mis-named article file.** `articles/five-teams-zero-owners.htmlfive-teams-zero-owners.html` should be `articles/five-teams-zero-owners.html`. `metadata.json` points to the correct name, so the card on the home page currently 404s. (`git mv` the file.)
 - [ ] **De-duplicate article IDs.** `8472` is used by both *Who Owns the Agent?* and *The Sandbox Lie*. Assign a new unique ID to one of them and add a uniqueness check (see P2 validation script).
 - [ ] **Fix broken share URLs.**
   - `leverage-lost.html` shares `https://iggym.github.io/scaling-ai-systems/leverage-lost` (missing `articles/` and `.html`).

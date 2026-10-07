@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Eval Mirage — Scaling AI Systems</title>
+<meta name="description" content="Eval coverage isn&#x27;t a test-suite problem; it&#x27;s a sampling problem. A 2,000-case suite has an 18% chance of even containing a 1-in-10,000 failure — while production serves that failure 100 times a day.">
+<link rel="canonical" href="https://iggym.github.io/scaling-ai-systems/articles/the-eval-mirage.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Scaling AI Systems">
+<meta property="og:title" content="The Eval Mirage">
+<meta property="og:description" content="Eval coverage isn&#x27;t a test-suite problem; it&#x27;s a sampling problem. A 2,000-case suite has an 18% chance of even containing a 1-in-10,000 failure — while production serves that failure 100 times a day.">
+<meta property="og:url" content="https://iggym.github.io/scaling-ai-systems/articles/the-eval-mirage.html">
+<meta property="article:published_time" content="2026-10-07">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The Eval Mirage">
+<meta name="twitter:description" content="Eval coverage isn&#x27;t a test-suite problem; it&#x27;s a sampling problem. A 2,000-case suite has an 18% chance of even containing a 1-in-10,000 failure — while production serves that failure 100 times a day.">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "The Eval Mirage", "description": "Eval coverage isn't a test-suite problem; it's a sampling problem. A 2,000-case suite has an 18% chance of even containing a 1-in-10,000 failure — while production serves that failure 100 times a day.", "datePublished": "2026-10-07", "dateModified": "2026-10-07", "mainEntityOfPage": "https://iggym.github.io/scaling-ai-systems/articles/the-eval-mirage.html", "author": {"@type": "Organization", "name": "Scaling AI Systems"}, "publisher": {"@type": "Organization", "name": "Scaling AI Systems", "url": "https://iggym.github.io/scaling-ai-systems/"}, "keywords": "post-mvp-reliability, evaluation, ai-infrastructure, scale", "wordCount": 1311}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@600;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--dark:#101418;--panel:#161B21;--panel2:#1B2129;--paper:#F4F1EC;--dim:#C9C5BC;--muted:#9A9EA6;--line:rgba(244,241,236,.12);
+--orange:#E4572E;--teal:#3A9A9B;--yellow:#FFD166;--display:'Libre Franklin',sans-serif;--body:'Inter',sans-serif;--mono:'IBM Plex Mono',monospace;}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--dark);color:var(--paper);font-family:var(--body);font-size:17.5px;line-height:1.68;-webkit-font-smoothing:antialiased}
+a{color:var(--paper)}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--yellow);outline-offset:3px}
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--orange);z-index:50}
+.topbar{position:sticky;top:0;z-index:40;background:rgba(16,20,24,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:12px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.topbar .mark{font-family:var(--display);font-weight:800;font-size:13px;letter-spacing:.02em;text-transform:uppercase;color:var(--orange);text-decoration:none;white-space:nowrap}
+.crumbs{font-family:var(--mono);font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crumbs a{color:var(--muted)}
+.crumbs ol{list-style:none;margin:0;padding:0;display:inline}
+.crumbs li{display:inline}
+.crumbs li+li::before{content:" / "}
+.rt{font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap}
+.toc-btn{display:none;background:none;border:1px solid var(--line);color:var(--paper);font-family:var(--mono);font-size:11px;padding:5px 9px;border-radius:3px;cursor:pointer}
+header.hero{max-width:900px;margin:0 auto;padding:64px 20px 28px}
+.eyebrow{font-family:var(--mono);font-size:11.5px;color:var(--orange);letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(2.3rem,6vw,3.9rem);line-height:1.03;letter-spacing:-.015em;margin:0 0 16px}
+h1 .accent{color:var(--orange)}
+.sub{font-size:1.15rem;color:var(--dim);max-width:640px;margin:0}
+.meta{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:18px;display:flex;gap:16px;flex-wrap:wrap}
+.spectrum{max-width:900px;margin:0 auto;padding:8px 20px 24px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.spec{padding:18px 20px;border-radius:4px;background:var(--panel)}
+.spec.before{border-left:3px solid var(--teal)}
+.spec.after{border-left:3px solid var(--orange)}
+.spec .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+.spec.before .lbl{color:var(--teal)}
+.spec.after .lbl{color:var(--orange)}
+.spec p{margin:0;font-size:15.5px;color:var(--dim);line-height:1.5}
+.spec strong{color:var(--paper)}
+.layout{max-width:1140px;margin:0 auto;padding:12px 20px 40px;display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:48px;align-items:start}
+article{min-width:0;max-width:72ch}
+article h2{font-family:var(--display);font-weight:800;font-size:1.55rem;line-height:1.2;letter-spacing:-.01em;margin:2.6rem 0 1rem;scroll-margin-top:72px}
+article h3{font-family:var(--display);font-weight:600;font-size:1.1rem;margin:1.6rem 0 .6rem}
+article p{margin:0 0 1.15rem}
+article ul,article ol{margin:0 0 1.2rem 1.2rem;padding:0}
+article li{margin-bottom:.45rem}
+article strong{font-weight:600}
+sup.cite a{font-family:var(--mono);font-size:.68em;color:var(--yellow);text-decoration:none;margin-left:1px}
+.marker{display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:2px;margin-bottom:10px}
+.marker.before{color:var(--teal);border:1px solid var(--teal)}
+.marker.after{color:var(--orange);border:1px solid var(--orange)}
+.beat{margin:2rem 0;padding:20px 22px;background:var(--panel);border:1px solid var(--line);border-radius:4px}
+.beat .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--yellow);margin-bottom:10px}
+.beat .shift{font-family:var(--display);font-weight:600;font-size:1.08rem;line-height:1.4;margin-bottom:12px}
+.beat .old{color:var(--teal)}
+.beat .new{color:var(--orange)}
+.beat .arrow{color:var(--muted);margin:0 .4rem}
+.beat p{margin:0;color:var(--dim);font-size:16px}
+.pq{margin:2rem 0;padding:22px 24px;border-left:4px solid var(--orange);background:rgba(228,87,46,.07);border-radius:0 4px 4px 0}
+.pq p{font-family:var(--display);font-weight:600;font-size:1.22rem;line-height:1.4;margin:0 0 12px}
+.share{display:flex;gap:10px;flex-wrap:wrap}
+.share a{font-family:var(--mono);font-size:11px;color:var(--muted);text-decoration:none;border:1px solid var(--line);padding:4px 10px;border-radius:2px}
+.share a:hover{color:var(--paper);border-color:var(--orange)}
+.math{font-family:var(--mono);font-size:15px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--yellow);padding:14px 16px;border-radius:3px;margin:1.2rem 0 1.4rem;overflow-x:auto}
+.aside{font-size:15px;color:var(--dim);background:var(--panel);border-left:2px solid var(--muted);padding:12px 16px;margin:1.4rem 0;border-radius:0 3px 3px 0}
+.tbl-wrap{overflow-x:auto;margin:1.2rem 0 1.6rem;border:1px solid var(--line);border-radius:4px}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.45}
+caption{caption-side:top;text-align:left;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:12px 14px 4px}
+th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+th{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+tr:last-child td{border-bottom:none}
+td.num{font-family:var(--mono);white-space:nowrap}
+.tag{font-family:var(--mono);font-size:10px;padding:1px 6px;border-radius:2px;white-space:nowrap}
+.tag.reported{color:var(--teal);border:1px solid var(--teal)}
+.tag.derived{color:var(--yellow);border:1px solid var(--yellow)}
+.tag.assumed{color:var(--muted);border:1px solid var(--muted)}
+.widget{margin:2.2rem 0;padding:22px;background:var(--panel);border:1px solid var(--line);border-radius:6px}
+.widget h3{margin:0 0 4px;font-size:1.15rem}
+.widget .hint{font-size:14.5px;color:var(--muted);margin:0 0 16px}
+.ctrl{margin-bottom:14px}
+.ctrl label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12px;color:var(--dim);margin-bottom:6px;gap:12px}
+.ctrl output{color:var(--yellow)}
+input[type=range]{width:100%;accent-color:var(--orange);height:28px}
+.readouts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:16px 0 6px}
+.ro{background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:10px 12px}
+.ro .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.ro .v{font-family:var(--display);font-weight:800;font-size:1.35rem;margin-top:2px}
+.ro.warn .v{color:var(--orange)}
+.ro.ok .v{color:var(--teal)}
+.chart{margin-top:12px}
+.chart svg{width:100%;height:auto;display:block}
+.chart .axis{stroke:rgba(244,241,236,.25);stroke-width:1}
+.chart .lbl{font-family:var(--mono);font-size:10px;fill:var(--muted)}
+.chart .curve{fill:none;stroke:var(--teal);stroke-width:2.5}
+.chart .thr{stroke:var(--orange);stroke-width:1.2;stroke-dasharray:4 4}
+.chart .dot{fill:var(--yellow)}
+.wnote{font-size:14.5px;color:var(--dim);margin:10px 0 0}
+.actions{counter-reset:act;list-style:none;margin:0 0 1.4rem!important;padding:0!important}
+.actions li{counter-increment:act;position:relative;padding:16px 18px 16px 58px;background:var(--panel);border:1px solid var(--line);border-radius:4px;margin-bottom:12px!important}
+.actions li::before{content:counter(act);position:absolute;left:18px;top:14px;font-family:var(--display);font-weight:800;font-size:1.4rem;color:var(--orange)}
+.actions li p{margin:.35rem 0 0;font-size:16px;color:var(--dim)}
+.actions .wk{font-family:var(--mono);font-size:12px;color:var(--yellow)}
+.closing{margin:2rem 0;padding:20px 22px;border:1px solid var(--orange);border-radius:4px;background:linear-gradient(135deg,rgba(228,87,46,.12),rgba(228,87,46,.02))}
+.closing .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--orange);margin-bottom:6px}
+.closing p{margin:0;font-weight:500}
+.recall{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:1rem 0 1.6rem}
+.rc{appearance:none;text-align:left;font:inherit;color:inherit;cursor:pointer;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:16px;min-height:118px}
+.rc:hover{border-color:var(--orange)}
+.rc .q{font-size:15px;line-height:1.45}
+.rc .a{display:none;font-family:var(--display);font-weight:800;font-size:1.15rem;color:var(--yellow);line-height:1.3}
+.rc .t{display:block;font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:10px;letter-spacing:.06em;text-transform:uppercase}
+.rc[aria-pressed=true]{background:var(--panel2);border-color:var(--yellow)}
+.rc[aria-pressed=true] .q{display:none}
+.rc[aria-pressed=true] .a{display:block}
+.cmap{margin:1rem 0 1.6rem;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px}
+.cmap svg{width:100%;height:auto;display:block}
+.cmap .node rect{fill:var(--panel2);stroke:var(--teal);stroke-width:1.5}
+.cmap .node.core rect{stroke:var(--orange);stroke-width:2}
+.cmap .node text{font-family:var(--body);font-size:12.5px;fill:var(--paper);font-weight:600}
+.cmap .edge{stroke:rgba(244,241,236,.35);stroke-width:1.3;fill:none}
+.cmap .elbl{font-family:var(--mono);font-size:10px;fill:var(--yellow)}
+.cmap-text{font-size:14px;color:var(--muted)}
+.cmap-text summary{cursor:pointer;font-family:var(--mono);font-size:12px}
+.related{display:grid;gap:10px;margin:1rem 0 1.6rem}
+.related a{display:block;text-decoration:none;padding:14px 16px;background:var(--panel);border:1px solid var(--line);border-radius:4px}
+.related a:hover{border-color:var(--orange)}
+.related .t{font-family:var(--display);font-weight:800}
+.related .w{display:block;font-size:14.5px;color:var(--muted);margin-top:2px}
+ol.cites{font-size:14.5px;color:var(--dim);margin-left:1.4rem!important}
+ol.cites li{scroll-margin-top:80px}
+ol.cites a{color:var(--paper);word-break:break-word}
+ol.cites li:target{background:rgba(255,209,102,.1)}
+aside.side{position:sticky;top:76px}
+.sbox{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:16px;margin-bottom:16px}
+.sbox h2{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--orange);margin:0 0 12px}
+.thing{display:flex;gap:10px;font-size:14px;line-height:1.4;color:var(--muted);margin-bottom:12px;transition:color .4s}
+.thing .dot{flex:0 0 9px;height:9px;border-radius:50%;background:var(--line);margin-top:5px;transition:background .4s}
+.thing.on{color:var(--paper)}
+.thing.on .dot{background:var(--orange)}
+.toc ol{list-style:none;margin:0;padding:0;font-size:14px}
+.toc li{margin-bottom:7px}
+.toc a{color:var(--muted);text-decoration:none}
+.toc a:hover,.toc a.cur{color:var(--paper)}
+footer.foot{border-top:1px solid var(--line);padding:32px 20px;text-align:center;font-family:var(--mono);font-size:12px}
+footer.foot a{color:var(--orange);margin:0 12px}
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
+.reveal.in{opacity:1;transform:none}
+@media (max-width:1023px){
+ .layout{grid-template-columns:minmax(0,1fr)}
+ aside.side{position:fixed;top:0;right:0;bottom:0;width:min(320px,86vw);background:var(--dark);border-left:1px solid var(--line);padding:70px 16px 16px;overflow-y:auto;transform:translateX(100%);transition:transform .25s ease;z-index:45}
+ aside.side.open{transform:none}
+ .toc-btn{display:inline-block}
+}
+@media (max-width:640px){
+ .spectrum{grid-template-columns:1fr}
+ .crumbs{display:none}
+ body{font-size:17px}
+}
+@media (prefers-reduced-motion:reduce){
+ *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+ .reveal{opacity:1;transform:none}
+}
+@media print{.topbar,#progress,aside.side,.share,.widget input{display:none}body{background:#fff;color:#000}}
+</style>
+</head>
+<body>
+<div id="progress" aria-hidden="true"></div>
+<header class="topbar">
+  <a class="mark" href="../index.html">Scaling AI Systems</a>
+  <nav class="crumbs" aria-label="Breadcrumb"><ol><li><a href="../index.html">Home</a></li><li>Case Studies</li><li aria-current="page">The Eval Mirage</li></ol></nav>
+  <span class="rt">6 min read</span>
+  <button type="button" class="toc-btn" aria-expanded="false" aria-controls="sidebar">Contents</button>
+</header>
+
+<main>
+<header class="hero">
+  <div class="eyebrow">Reliability · Past MVP</div>
+  <h1>The Eval <span class="accent">Mirage</span></h1>
+  <p class="sub">Your offline suite passed. Your users found the regression anyway — because the failure lived in a slice your suite never sampled.</p>
+  <div class="meta"><span>2026-10-07</span><span>6 min read</span><span>post-mvp-reliability · evaluation · ai-infrastructure · scale</span></div>
+</header>
+
+<section class="spectrum" aria-label="Assumption versus evidence">
+  <div class="spec before"><div class="lbl">Common Assumption</div><p>A curated eval suite of <strong>2,000 golden cases</strong> plus an A/B test is enough to gate a model or prompt release.</p></div>
+  <div class="spec after"><div class="lbl">Actual Inflection</div><p>To have a 95% chance of seeing a 1-in-10,000 failure even once, you need roughly <strong>37,000 cases</strong>. Judging 1% of live traffic gets you there in about four days.</p></div>
+</section>
+
+<div class="layout">
+<article>
+  <span class="marker before">Before scale</span>
+  <p>On April 25, 2025, OpenAI shipped an update to GPT-4o in ChatGPT. Within days, users were posting screenshots of the model praising bad business plans and validating decisions it should have questioned. OpenAI began rolling the update back on April 28.<sup class="cite"><a href="#cite-1" aria-label="Source 1">[1]</a></sup></p>
+<p>The company's own post-mortem is the most useful document in this story, because of what it says about the gate. Offline evaluations — including behavioral ones — "generally looked good." The A/B test indicated that the small group of users who tried the new model liked it. Some expert testers said the model "felt" slightly off, but there was no deployment evaluation that tracked sycophancy specifically, so nothing in the release process turned that feeling into a blocking number.<sup class="cite"><a href="#cite-1" aria-label="Source 1">[1]</a></sup><sup class="cite"><a href="#cite-4" aria-label="Source 4">[4]</a></sup></p>
+<p>This is not a story about a careless team. It is a story about a release gate that measured the wrong distribution. Every check passed on the inputs it was given. The failure lived in the inputs it was not given.</p>
+
+  <div class="beat reveal"><div class="lbl">Perspective shift — beat 1</div><div class="shift"><span class="old">“Our evals passed, so the release is safe”</span><span class="arrow" aria-label="becomes">→</span><span class="new">“Our evals passed on the slice we sampled”</span></div><p>A suite is a sample. It answers one question: on these cases, does the new version behave at least as well as the old one? It cannot say anything about failure modes that appear in fewer cases than the suite contains. At pilot volume that gap is academic. At a million requests a day, a failure that hits one request in ten thousand happens a hundred times a day — and a 2,000-case suite will usually never contain one of them.</p></div>
+
+  <h2 id="thesis">Coverage Is a Sampling Problem</h2>
+  <p>The usual response to an escaped regression is to add the failing case to the golden set. That is correct and nowhere near enough. It fixes the failure you already found and does almost nothing for the next one, because the next one sits in a different slice of the input distribution.</p>
+<p>Treat the eval suite as a statistical instrument. If a failure mode affects a fraction <em>p</em> of real traffic, and your suite draws <em>n</em> cases from something like that distribution, the chance that the suite contains even one affected case is <code>1 − (1 − p)<sup>n</sup></code>. That is before an LLM judge has to notice the failure. Judges are good but not perfect: the reference study on LLM-as-a-judge found GPT-4 agreed with human preferences more than 80% of the time, about the rate at which humans agree with each other, and documented position, verbosity and self-enhancement biases.<sup class="cite"><a href="#cite-3" aria-label="Source 3">[3]</a></sup> Fold the judge's recall <em>r</em> in and the detection probability becomes <code>1 − (1 − p·r)<sup>n</sup></code>.</p>
+<p>The number that matters is not your pass rate. It is the smallest failure rate your gate can reliably see. For most teams that number is about one in a few hundred — far above the rate at which damaging failures actually occur once traffic is real.</p>
+<p>There is a second, quieter problem: the suite is drawn from the wrong distribution. Golden sets are usually assembled around launch, from the inputs the team could imagine and the bugs the pilot surfaced. Six months later, traffic has drifted — new customer segments, longer conversations, new languages, tool calls that did not exist at launch. The suite keeps passing because it keeps testing last year's product. Every week of drift lowers the effective <em>p</em> your suite can see for the inputs that now make up most of your volume.</p>
+  <blockquote class="pq reveal"><p>The number that matters is not your pass rate. It is the smallest failure rate your gate can reliably see.</p><div class="share"><a href="https://x.com/intent/tweet?text=The%20number%20that%20matters%20is%20not%20your%20pass%20rate.%20It%20is%20the%20smallest%20failure%20rate%20your%20gate%20can%20reliably%20see.&amp;url=https%3A%2F%2Figgym.github.io%2Fscaling-ai-systems%2Farticles%2Fthe-eval-mirage.html" target="_blank" rel="noopener">Share on X</a><a href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Figgym.github.io%2Fscaling-ai-systems%2Farticles%2Fthe-eval-mirage.html" target="_blank" rel="noopener">Share on LinkedIn</a></div></blockquote>
+
+  <h2 id="anatomy">What Detection Actually Costs</h2>
+  <p>Run the arithmetic for a common post-MVP shape: one million requests a day, a 2,000-case golden suite, an LLM judge with 80% recall, and a failure mode affecting one request in ten thousand.</p>
+<p>The comparison is lopsided. Building a suite large enough to see the failure means labelling tens of thousands of cases — a six-figure project that is out of date the day it ships. Judging a small slice of live traffic costs a few dollars a day, refreshes itself, and gets better as volume grows: the same traffic that makes rare failures frequent also makes them cheap to find. Volume is the problem and the instrument at the same time.</p>
+  <div class="tbl-wrap"><table><caption>Two ways to see a 1-in-10,000 failure (illustrative)</caption><thead><tr><th scope="col">Line item</th><th scope="col">Value</th><th scope="col">Basis</th></tr></thead><tbody><tr><th scope="row">Daily requests</th><td>1,000,000</td><td><span class="tag assumed">assumed</span></td></tr><tr><th scope="row">Failure rate of the new mode</th><td>1 in 10,000</td><td><span class="tag assumed">assumed</span></td></tr><tr><th scope="row">Bad responses served per day</th><td>100</td><td><span class="tag derived">derived</span> 1,000,000 × 0.0001</td></tr><tr><th scope="row">Judge recall</th><td>80%</td><td><span class="tag assumed">assumed</span>, consistent with ~80% human agreement<sup class="cite"><a href="#cite-3" aria-label="Source 3">[3]</a></sup></td></tr><tr><th scope="row">P(2,000-case suite sees it once)</th><td>14.8%</td><td><span class="tag derived">derived</span> 1 − (1 − 0.00008)<sup>2000</sup></td></tr><tr><th scope="row">Cases needed for 95% detection</th><td>≈ 37,400</td><td><span class="tag derived">derived</span> ln(0.05) ÷ ln(1 − 0.00008)</td></tr><tr><th scope="row">Labelled-case build cost at $5/case</th><td>≈ $187,000</td><td><span class="tag assumed">assumed</span> labelling rate</td></tr><tr><th scope="row">Judging 1% of live traffic at $0.005/call</th><td>$50/day</td><td><span class="tag assumed">assumed</span> judge cost</td></tr><tr><th scope="row">P(1% live sample sees it within 3 days)</th><td>≈ 91%</td><td><span class="tag derived">derived</span> 1 − e<sup>−(10,000 × 0.00008 × 3)</sup></td></tr></tbody></table></div>
+  <div class="math">Detection = 1 − (1 − p·r)<sup>n</sup> → for p = 1/10,000, r = 0.8: n = 2,000 gives <strong>14.8%</strong>; n = 37,400 gives <strong>95%</strong>. A 1% live sample at 1M req/day reaches 91% in <strong>3 days</strong> for about $150.</div>
+
+  <section class="widget" id="widget" aria-labelledby="w-title">
+    <h3 id="w-title">How small a failure can your gate see?</h3>
+    <p class="hint">Set your suite size, traffic and judge quality. The curve is the chance your offline suite contains and flags the failure at least once.</p>
+    <div class="ctrl"><label for="in-n"><span>Offline suite size</span><output id="out-n" for="in-n"></output></label><input type="range" id="in-n" min="1000" max="40000" step="500" value="2000"></div><div class="ctrl"><label for="in-inv"><span>Failure rate (1 in N)</span><output id="out-inv" for="in-inv"></output></label><input type="range" id="in-inv" min="1000" max="50000" step="1000" value="10000"></div><div class="ctrl"><label for="in-v"><span>Daily requests</span><output id="out-v" for="in-v"></output></label><input type="range" id="in-v" min="100000" max="5000000" step="100000" value="1000000"></div><div class="ctrl"><label for="in-r"><span>Judge recall</span><output id="out-r" for="in-r"></output></label><input type="range" id="in-r" min="50" max="100" step="5" value="80"></div>
+    <div class="readouts" id="readouts" aria-live="polite"></div>
+    <div class="chart"><svg id="wchart" viewBox="0 0 640 240" role="img" aria-label="Detection probability as offline suite size grows, with a 95% target line"></svg></div>
+    <p class="wnote" id="wnote"></p>
+  </section>
+
+  <span class="marker after">After scale</span>
+  <div class="beat reveal"><div class="lbl">Perspective shift — beat 2</div><div class="shift"><span class="old">“We need a bigger golden set”</span><span class="arrow" aria-label="becomes">→</span><span class="new">“We need to evaluate production, not just releases”</span></div><p>Once the arithmetic is on the table, growing the golden set looks like the expensive route to coverage. A labelled case costs a person's time and goes stale as your traffic changes. A judged sample of live traffic costs a fraction of a cent, always matches the current distribution, and scales with volume instead of headcount. The second-order effect is the important one: when the gate moves from release time to run time, the regression stops being a release-engineering problem and becomes an operational one. It needs an owner, a threshold and an alert — the same machinery you already run for latency.</p></div>
+
+  <h2 id="pattern">Three Escapes, One Shape</h2>
+  <p>Three public incidents share a structure: each release or change passed the checks that existed, and users found the problem before the instruments did.</p>
+<p>In August and early September 2025, three separate infrastructure bugs intermittently degraded Claude's responses. One misrouted some Sonnet 4 requests to servers configured for a different context window, affecting 16% of those requests at its peak on August 31; another corrupted token generation, producing stray Thai or Chinese characters in English answers; a third was a compiler bug in an approximate top-k operation.<sup class="cite"><a href="#cite-2" aria-label="Source 2">[2]</a></sup> Anthropic's post-mortem says its evaluations did not capture the degradation users were reporting, partly because the models often recovered from isolated mistakes — exactly the low-rate, slice-specific failure a fixed suite under-samples.<sup class="cite"><a href="#cite-2" aria-label="Source 2">[2]</a></sup></p>
+<p>The OpenAI case shows the other half of the pattern. The A/B test did measure live users — but it measured whether they liked the answers, and sycophancy is something users like in the moment. The signal pointed the wrong way because the metric was a proxy. A judged sample with an explicit rubric for agreeing with false premises would have measured the property directly. Both escapes come down to the same thing: the instrument measured something adjacent to the failure, never the failure itself.</p>
+  <div class="tbl-wrap"><table><caption>Regressions that passed the gate</caption><thead><tr><th scope="col">Case</th><th scope="col">Scale signal</th><th scope="col">What the gate saw</th><th scope="col">What users saw</th><th scope="col">Dynamic</th></tr></thead><tbody><tr><th scope="row">OpenAI GPT-4o update (Apr 2025)</th><td>ChatGPT consumer traffic</td><td>Offline evals and A/B test looked good<sup class="cite"><a href="#cite-1" aria-label="Source 1">[1]</a></sup></td><td>Sycophantic answers; rolled back after ~3 days<sup class="cite"><a href="#cite-1" aria-label="Source 1">[1]</a></sup></td><td>Unmeasured behaviour dimension</td></tr><tr><th scope="row">Anthropic infrastructure bugs (Aug–Sep 2025)</th><td>Up to 16% of Sonnet 4 requests at peak<sup class="cite"><a href="#cite-2" aria-label="Source 2">[2]</a></sup></td><td>Evals did not flag the degradation<sup class="cite"><a href="#cite-2" aria-label="Source 2">[2]</a></sup></td><td>Garbled tokens, worse answers</td><td>Low-rate, intermittent failure</td></tr><tr><th scope="row">LLM-as-judge study (2023)</th><td>3K expert + 3K crowd votes<sup class="cite"><a href="#cite-3" aria-label="Source 3">[3]</a></sup></td><td>~80% agreement with humans<sup class="cite"><a href="#cite-3" aria-label="Source 3">[3]</a></sup></td><td>Position, verbosity and self-enhancement bias<sup class="cite"><a href="#cite-3" aria-label="Source 3">[3]</a></sup></td><td>The judge is also a sample</td></tr></tbody></table></div>
+  <blockquote class="pq reveal"><p>A 2,000-case suite has an 18% chance of even containing a 1-in-10,000 failure. Production serves it 100 times a day.</p><div class="share"><a href="https://x.com/intent/tweet?text=A%202%2C000-case%20suite%20has%20an%2018%25%20chance%20of%20even%20containing%20a%201-in-10%2C000%20failure.%20Production%20serves%20it%20100%20times%20a%20day.&amp;url=https%3A%2F%2Figgym.github.io%2Fscaling-ai-systems%2Farticles%2Fthe-eval-mirage.html" target="_blank" rel="noopener">Share on X</a><a href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Figgym.github.io%2Fscaling-ai-systems%2Farticles%2Fthe-eval-mirage.html" target="_blank" rel="noopener">Share on LinkedIn</a></div></blockquote>
+
+  <h2 id="counter">Your Counterargument</h2>
+  <p>“Production sampling is just monitoring with extra steps. Real quality problems are obvious — users complain, tickets spike, and we roll back. Why build statistical machinery for something support already catches?”</p>
+<p>Half right. Severe regressions do get reported, and user reports caught both incidents above. But look at what that costs: the sycophancy update was live for about three days<sup class="cite"><a href="#cite-1" aria-label="Source 1">[1]</a></sup>, and the Anthropic bugs ran intermittently for weeks.<sup class="cite"><a href="#cite-2" aria-label="Source 2">[2]</a></sup> Complaint-driven detection has three structural weaknesses. It is slow, because users only report problems that are bad enough and visible enough. It is biased towards loud users and away from silent churn. And it gives you no baseline to tell a real regression from the background rate of complaints.</p>
+<p>The fix is not to replace the golden set. Keep it as a fast, cheap regression check for known failures. Add a live, judged sample as the instrument for unknown ones — and make it page a person.</p>
+
+  <h2 id="actions">What to Do</h2>
+  <ol class="actions"><li><strong>State your gate's minimum detectable failure rate.</strong><p>Compute <code>1 − (1 − p·r)<sup>n</sup></code> for your current suite at p = 1/1,000 and 1/10,000. Put the result in the release checklist next to the pass rate, so everyone can see what the gate cannot see.</p><p class="wk">This week: calculate it for your highest-traffic endpoint and share the number.</p></li><li><strong>Judge a fixed slice of live traffic, continuously.</strong><p>Start at 0.5–1% of requests, scored by the same rubric as your offline suite plus open-ended ‘anything wrong?’ checks. At 1M requests a day that is 5–10K judgements for tens of dollars.</p><p class="wk">This week: ship a sampler that writes request, response and judge score to a table.</p></li><li><strong>Calibrate the judge against humans every month.</strong><p>Have people label 200 sampled items and measure the judge's recall per failure category. A judge with 60% recall on one category halves your effective sample size there.<sup class="cite"><a href="#cite-3" aria-label="Source 3">[3]</a></sup></p><p class="wk">This week: pull 200 items for the first calibration batch.</p></li><li><strong>Make rollouts canaries, not launches.</strong><p>Ship to 5% of traffic, compare judged-sample metrics against control for long enough to reach your detection target, then widen. Write the stop rule down before the rollout starts.</p><p class="wk">This week: add a judged-quality comparison to your next rollout&#x27;s dashboard.</p></li></ol>
+
+  <div class="closing"><div class="lbl">In the next 24 hours</div><p>Pick your busiest AI endpoint, assume a 1-in-10,000 failure, and calculate the chance your current suite would have caught it. If the answer is under 50%, start sampling live traffic before the next release.</p></div>
+
+  <h2 id="recall">Recall Check</h2>
+  <div class="recall"><button type="button" class="rc" aria-pressed="false"><span class="q">Chance a 2,000-case suite (80% judge recall) sees a 1-in-10,000 failure?</span><span class="a">≈ 15%</span><span class="t">Tap to flip</span></button><button type="button" class="rc" aria-pressed="false"><span class="q">Cases needed for 95% detection of that failure?</span><span class="a">≈ 37,400</span><span class="t">Tap to flip</span></button><button type="button" class="rc" aria-pressed="false"><span class="q">Days for a 1% live sample at 1M req/day to reach ~91%?</span><span class="a">3 days</span><span class="t">Tap to flip</span></button><button type="button" class="rc" aria-pressed="false"><span class="q">Peak share of Sonnet 4 requests hit by the routing bug?</span><span class="a">16%</span><span class="t">Tap to flip</span></button></div>
+
+  <h2 id="map">Concept Map</h2>
+  <div class="cmap"><svg viewBox="0 0 720 380" role="img" aria-labelledby="cm-t cm-d"><title id="cm-t">Concept map</title><desc id="cm-d">Golden suite feeds Release gate; LLM judge scores Release gate; Traffic volume multiplies Long-tail failures; Long-tail failures escapes Golden suite; Live sampling detects Long-tail failures; Traffic volume cheapens Live sampling</desc><defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="rgba(244,241,236,.5)"/></marker></defs><line class="edge" x1="360" y1="55" x2="360" y2="190" marker-end="url(#arr)"/><text class="elbl" x="360" y="118" text-anchor="middle">feeds</text><line class="edge" x1="617" y1="148" x2="360" y2="190" marker-end="url(#arr)"/><text class="elbl" x="488" y="165" text-anchor="middle">scores</text><line class="edge" x1="201" y1="299" x2="519" y2="299" marker-end="url(#arr)"/><text class="elbl" x="360" y="295" text-anchor="middle">multiplies</text><line class="edge" x1="519" y1="299" x2="360" y2="55" marker-end="url(#arr)"/><text class="elbl" x="439" y="173" text-anchor="middle">escapes</text><line class="edge" x1="103" y1="148" x2="519" y2="299" marker-end="url(#arr)"/><text class="elbl" x="311" y="220" text-anchor="middle">detects</text><line class="edge" x1="201" y1="299" x2="103" y2="148" marker-end="url(#arr)"/><text class="elbl" x="152" y="220" text-anchor="middle">cheapens</text><g class="node core"><rect x="300" y="172" width="120" height="36" rx="4"/><text x="360" y="194" text-anchor="middle">Release gate</text></g><g class="node"><rect x="300" y="37" width="120" height="36" rx="4"/><text x="360" y="59" text-anchor="middle">Golden suite</text></g><g class="node"><rect x="557" y="130" width="120" height="36" rx="4"/><text x="617" y="152" text-anchor="middle">LLM judge</text></g><g class="node"><rect x="437" y="281" width="164" height="36" rx="4"/><text x="519" y="303" text-anchor="middle">Long-tail failures</text></g><g class="node"><rect x="135" y="281" width="132" height="36" rx="4"/><text x="201" y="303" text-anchor="middle">Traffic volume</text></g><g class="node"><rect x="41" y="130" width="124" height="36" rx="4"/><text x="103" y="152" text-anchor="middle">Live sampling</text></g></svg></div><details class="cmap-text"><summary>Concept map as text</summary><ul><li>Golden suite → <em>feeds</em> → Release gate</li><li>LLM judge → <em>scores</em> → Release gate</li><li>Traffic volume → <em>multiplies</em> → Long-tail failures</li><li>Long-tail failures → <em>escapes</em> → Golden suite</li><li>Live sampling → <em>detects</em> → Long-tail failures</li><li>Traffic volume → <em>cheapens</em> → Live sampling</li></ul></details>
+
+  <h2 id="related">Related</h2>
+  <div class="related"><a href="the-sandbox-lie.html"><span class="t">The Sandbox Lie</span><span class="w">Why pilot reliability doesn&#x27;t survive production scope.</span></a><a href="cheap-tokens-massive-bills.html"><span class="t">Cheap Tokens, Massive Bills</span><span class="w">The token economics that make live judging cheap.</span></a></div>
+
+  <h2 id="sources">Sources</h2>
+  <ol class="cites"><li id="cite-1">OpenAI — <a href="https://openai.com/index/expanding-on-sycophancy/" target="_blank" rel="noopener">“Expanding on what we missed with sycophancy”</a> (May 2025)</li><li id="cite-2">Anthropic Engineering — <a href="https://www.anthropic.com/engineering/a-postmortem-of-three-recent-issues" target="_blank" rel="noopener">“A postmortem of three recent issues”</a> (Sep 2025)</li><li id="cite-3">Zheng et al., arXiv — <a href="https://arxiv.org/abs/2306.05685" target="_blank" rel="noopener">“Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena”</a> (Jun 2023)</li><li id="cite-4">Simon Willison — <a href="https://simonwillison.net/2025/May/2/what-we-missed-with-sycophancy/" target="_blank" rel="noopener">“What we missed with sycophancy”</a> (May 2025)</li><li id="cite-5">Google SRE Book — <a href="https://sre.google/sre-book/monitoring-distributed-systems/" target="_blank" rel="noopener">“Monitoring Distributed Systems”</a> (2016) — background</li></ol>
+  <p class="aside">Numbers tagged <span class="tag reported">reported</span> come from the cited source; <span class="tag derived">derived</span> are arithmetic on reported figures, with the formula shown; <span class="tag assumed">assumed</span> are round illustrative inputs you should replace with your own.</p>
+</article>
+
+<aside class="side" id="sidebar" aria-label="Article guide">
+  <div class="sbox"><h2>Three Things</h2><div class="thing" data-sec="thesis"><span class="dot"></span><span>Your suite is a sample; its blind spot is any failure rarer than 1 in n.</span></div><div class="thing" data-sec="anatomy"><span class="dot"></span><span>~37,000 labelled cases for 95% detection, or about 4 days of a 1% live sample.</span></div><div class="thing" data-sec="actions"><span class="dot"></span><span>Move the gate from release time to run time, and give it a pager.</span></div></div>
+  <nav class="sbox toc" aria-label="On this page"><h2>On this page</h2><ol><li><a href="#thesis">Coverage Is a Sampling Problem</a></li><li><a href="#anatomy">What Detection Actually Costs</a></li><li><a href="#pattern">Three Escapes, One Shape</a></li><li><a href="#counter">Your Counterargument</a></li><li><a href="#actions">What to Do</a></li><li><a href="#recall">Recall Check</a></li><li><a href="#map">Concept Map</a></li><li><a href="#related">Related</a></li><li><a href="#sources">Sources</a></li></ol></nav>
+</aside>
+</div>
+</main>
+
+<footer class="foot"><a href="#">Back to top ↑</a><a href="../index.html">Home</a></footer>
+<script>
+window.WIDGET={
+ controls:[
+  {id:'n',value:2000,fmt:function(x){return Math.round(x).toLocaleString('en-US')+' cases';}},
+  {id:'inv',value:10000,fmt:function(x){return '1 in '+Math.round(x).toLocaleString('en-US');}},
+  {id:'v',value:1000000,fmt:function(x){return (x/1e6).toFixed(1)+'M / day';}},
+  {id:'r',value:80,fmt:function(x){return x+'%';}}],
+ model:function(v){
+  var q=(1/v.inv)*(v.r/100), det=1-Math.pow(1-q,v.n), need=Math.log(0.05)/Math.log(1-q), bad=v.v/v.inv, s=v.v*0.01*q, days=Math.log(20)/s;
+  return {y:det*100,
+   readouts:[['Suite detection',(det*100).toFixed(1)+'%',det<0.5?'warn':'ok'],['Bad responses / day',Math.round(bad).toLocaleString('en-US'),bad>=10?'warn':''],['Cases for 95%',Math.round(need).toLocaleString('en-US')],['1% live sample: days to 95%',days<1?'< 1':days.toFixed(1),'ok']],
+   note: det<0.95 ? 'Your suite misses this failure '+(100-det*100).toFixed(0)+'% of the time while production serves it '+Math.round(bad).toLocaleString('en-US')+' times a day.' : 'At this size the suite reliably sees the failure — check what it costs to build and keep current.'};},
+ chart:{x:'n',ymax:100,threshold:95,thrlabel:'95% target',xlabel:'offline suite size (cases)',yfmt:function(y){return Math.round(y)+'%';},xfmt:function(x){return (x/1000).toFixed(0)+'k';}}
+};
+</script>
+<script>
+(function(){
+  var $=function(s,r){return (r||document).querySelector(s)}, $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+  var bar=$('#progress');
+  function onScroll(){var h=document.documentElement;var max=h.scrollHeight-h.clientHeight;if(bar)bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';}
+  window.addEventListener('scroll',onScroll,{passive:true});onScroll();
+  var btn=$('.toc-btn'), side=$('aside.side');
+  if(btn&&side){btn.addEventListener('click',function(){var o=side.classList.toggle('open');btn.setAttribute('aria-expanded',o?'true':'false');});
+    $$('a',side).forEach(function(a){a.addEventListener('click',function(){side.classList.remove('open');btn.setAttribute('aria-expanded','false');});});}
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(es){es.forEach(function(en){if(en.isIntersecting){en.target.classList.add('in');io.unobserve(en.target);}});},{rootMargin:'0px 0px -10% 0px'});
+    $$('.reveal').forEach(function(el){io.observe(el);});
+    var so=new IntersectionObserver(function(es){es.forEach(function(en){if(!en.isIntersecting)return;var id=en.target.id;
+      $$('.thing[data-sec="'+id+'"]').forEach(function(t){t.classList.add('on');});
+      $$('.toc a').forEach(function(a){a.classList.toggle('cur',a.getAttribute('href')==='#'+id);});});},{rootMargin:'0px 0px -55% 0px'});
+    $$('article h2[id]').forEach(function(h){so.observe(h);});
+  } else { $$('.reveal').forEach(function(el){el.classList.add('in');}); $$('.thing').forEach(function(t){t.classList.add('on');}); }
+  $$('.rc').forEach(function(c){c.addEventListener('click',function(){c.setAttribute('aria-pressed',c.getAttribute('aria-pressed')==='true'?'false':'true');});});
+  var W=window.WIDGET; if(!W) return;
+  var root=$('#widget'); if(!root) return;
+  var inputs={}; W.controls.forEach(function(c){inputs[c.id]=$('#in-'+c.id);});
+  function vals(over){var v={};W.controls.forEach(function(c){var el=inputs[c.id];v[c.id]=el?parseFloat(el.value):c.value;});if(over)for(var k in over)v[k]=over[k];return v;}
+  function draw(v){
+    var svg=$('#wchart'); if(!svg) return;
+    var C=W.chart, xc=W.controls.filter(function(c){return c.id===C.x;})[0];
+    var Wd=640,Ht=240,L=56,R=16,T=16,B=36, N=80, pts=[], ymax=C.ymax||0;
+    for(var i=0;i<=N;i++){var x=xc.min+(xc.max-xc.min)*i/N;var o={};o[C.x]=x;var y=W.model(vals(o)).y;pts.push([x,y]);if(!C.ymax&&isFinite(y))ymax=Math.max(ymax,y);}
+    if(C.threshold!=null&&!C.ymax)ymax=Math.max(ymax,C.threshold*1.15);
+    ymax=ymax||1;
+    var sx=function(x){return L+(x-xc.min)/(xc.max-xc.min)*(Wd-L-R);}, sy=function(y){return T+(1-Math.min(Math.max(y,0),ymax)/ymax)*(Ht-T-B);};
+    var d=pts.map(function(p,i){return (i?'L':'M')+sx(p[0]).toFixed(1)+','+sy(p[1]).toFixed(1);}).join(' ');
+    var cur=W.model(v).y, s='';
+    s+='<line class="axis" x1="'+L+'" y1="'+(Ht-B)+'" x2="'+(Wd-R)+'" y2="'+(Ht-B)+'"/><line class="axis" x1="'+L+'" y1="'+T+'" x2="'+L+'" y2="'+(Ht-B)+'"/>';
+    for(var t=0;t<=4;t++){var yv=ymax*t/4;s+='<text class="lbl" x="'+(L-6)+'" y="'+(sy(yv)+3)+'" text-anchor="end">'+C.yfmt(yv)+'</text>';}
+    for(var t2=0;t2<=4;t2++){var xv=xc.min+(xc.max-xc.min)*t2/4;s+='<text class="lbl" x="'+sx(xv)+'" y="'+(Ht-B+16)+'" text-anchor="middle">'+C.xfmt(xv)+'</text>';}
+    s+='<text class="lbl" x="'+((L+Wd-R)/2)+'" y="'+(Ht-2)+'" text-anchor="middle">'+C.xlabel+'</text>';
+    if(C.threshold!=null){s+='<line class="thr" x1="'+L+'" x2="'+(Wd-R)+'" y1="'+sy(C.threshold)+'" y2="'+sy(C.threshold)+'"/><text class="lbl" x="'+(Wd-R)+'" y="'+(sy(C.threshold)-5)+'" text-anchor="end" style="fill:var(--orange)">'+C.thrlabel+'</text>';}
+    s+='<path class="curve" d="'+d+'"/><circle class="dot" r="5" cx="'+sx(v[C.x])+'" cy="'+sy(cur)+'"/>';
+    svg.innerHTML=s;
+  }
+  function update(){
+    var v=vals(), out=W.model(v);
+    W.controls.forEach(function(c){var o=$('#out-'+c.id), el=inputs[c.id]; var txt=c.fmt(v[c.id]); if(o)o.textContent=txt; if(el)el.setAttribute('aria-valuetext',txt);});
+    var ro=$('#readouts'); if(ro) ro.innerHTML=out.readouts.map(function(r){return '<div class="ro '+(r[2]||'')+'"><div class="k">'+r[0]+'</div><div class="v">'+r[1]+'</div></div>';}).join('');
+    var n=$('#wnote'); if(n) n.textContent=out.note||'';
+    draw(v);
+  }
+  W.controls.forEach(function(c){if(inputs[c.id])inputs[c.id].addEventListener('input',update);});
+  update();
+})();
+</script>
+</body>
+</html>

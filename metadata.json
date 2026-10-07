@@ -7,167 +7,344 @@
     "audience": "Engineering leaders past MVP, hitting scale problems",
     "description": "Case studies and cost anatomies for teams that cleared the proof-of-concept stage and are now finding out what only shows up at real scale."
   },
-  "articles": [{
-  "id": "2804",
-  "slug": "boundary-collapse-ai-org-design",
-  "title": "When Code Replaces Departments",
-  "hook": "Scaling AI isn't a model problem; it's a boundary problem. When an agent's output volume rivals a department, the wall between platform engineering and business operations collapses.",
-  "path": "articles/boundary-collapse-ai-org-design.html",
-  "date": "2024-03-12",
-  "status": "published",
-  "format": "case-study",
-  "tags": ["org-design", "ai-scaling", "cost-economics"],
-  "reading_time_minutes": 6,
-  "pinned": false,
-  "research_window": "Feb 13, 2024 - March 12, 2024"
-}, {
-  "id": "8472",
-  "slug": "who-owns-the-agent",
-  "title": "Who Owns the Agent?",
-  "hook": "Scaling AI is not a compute problem; it is an orchestration boundary problem.",
-  "path": "articles/who-owns-the-agent.html",
-  "date": "2026-03-18",
-  "status": "published",
-  "format": "case-study",
-  "tags": ["org-design", "agentic-ai", "scale"],
-  "reading_time_minutes": 7,
-  "pinned": false,
-  "research_window": "2026-02-18 to 2026-03-18"
-},{
-  "id": "8217",
-  "slug": "who-signed-off",
-  "title": "Who Signed Off?",
-  "hook": "The audit gap isn't a compliance problem — it's an architecture problem. You cannot retroactively inspect what you didn't instrument at the point of decision.",
-  "path": "articles/who-signed-off.html",
-  "date": "2025-02-18",
-  "status": "published",
-  "format": "case-study",
-  "tags": ["compliance-at-scale", "eu-ai-act", "architecture", "audit-infrastructure"],
-  "reading_time_minutes": 7,
-  "pinned": false,
-  "research_window": "2025-01-07 to 2025-02-18"
-}, {
-  "id": "1019",
-  "slug": "ownership-void-org-design-ai-scale",
-  "title": "The Ownership Void",
-  "hook": "Org design for AI systems fails when treated as a tooling problem rather than an authority boundary problem.",
-  "path": "articles/ownership-void-org-design-ai-scale.html",
-  "date": "2026-03-14",
-  "status": "published",
-  "format": "case-study",
-  "tags": ["org-design", "scaling", "governance", "infrastructure"],
-  "reading_time_minutes": 4,
-  "pinned": false,
-  "research_window": "2026-02-14 to 2026-03-14"
-}, {
-  "id": "0417",
-  "slug": "leverage-lost",
-  "title": "Leverage Lost",
-  "hook": "AI vendor lock-in isn't a contract trap; it's an architectural one. Your prompts are fused to a single latent space.",
-  "path": "articles/leverage-lost.html",
-  "date": "2026-04-17",
-  "status": "published",
-  "format": "case-study",
-  "tags": ["vendor-lock-in", "ai-economics", "infrastructure-migration", "scale"],
-  "reading_time_minutes": 6,
-  "pinned": false,
-  "research_window": "2026-03-20 to 2026-04-17"
-},{
-  "id": "8472",
-  "slug": "the-sandbox-lie",
-  "title": "The Sandbox Lie",
-  "hook": "Pilot reliability is a structural illusion. The failures that destroy AI systems at scale do not exist in a sandbox—they require the permission scope and volume of production to physically manifest.",
-  "path": "articles/the-sandbox-lie.html",
-  "date": "2026-05-20",
-  "status": "published",
-  "format": "case-study",
-  "tags": ["post-mvp-reliability", "ai-infrastructure", "agentic-loops"],
-  "reading_time_minutes": 6,
-  "pinned": false,
-  "research_window": "2026-04-15 to 2026-05-20"
-},{
-  "id": "0027",
-  "slug": "own-the-front-door",
-  "title": "Own the Front Door",
-  "hook": "Centralizing AI ownership creates a bottleneck, not a center of excellence — the iteration loop needs to live where domain context lives.",
-  "path": "articles/own-the-front-door.html",
-  "date": "2025-03-14",
-  "status": "published",
-  "format": "case-study",
-  "tags": ["org-design", "ai-teams", "iteration-latency", "platform-vs-embedded"],
-  "reading_time_minutes": 6,
-  "pinned": false,
-  "research_window": "Feb 7, 2025 – Mar 14, 2025 (W=5 draw)"
-},{
-  "id": "4829",
-  "slug": "the-hostage-architecture",
-  "title": "The Hostage Architecture",
-  "hook": "Vendor lock-in in AI extends far beyond data-egress fees; it functions as a subsidized unit-economics trap and a cognitive-calcification crisis.",
-  "path": "articles/the-hostage-architecture.html",
-  "date": "2026-04-17",
-  "status": "published",
-  "format": "case-study",
-  "tags": ["vendor-lock-in", "ai-infrastructure", "unit-economics"],
-  "reading_time_minutes": 7,
-  "pinned": false,
-  "research_window": "2026-03-13 to 2026-04-17"
-},{
-  "id": "3048",
-  "slug": "cheap-tokens-massive-bills",
-  "title": "Cheap Tokens, Massive Bills",
-  "hook": "Dropping unit token prices do not reduce your cloud bill; they lower the barrier for product teams to introduce context payloads and autonomous multi-turn loops that multiply token volume exponentially.",
-  "path": "articles/cheap-tokens-massive-bills.html",
-  "date": "2026-03-25",
-  "status": "published",
-  "format": "case-study",
-  "tags": [
-    "inference-economics",
-    "jevons-paradox",
-    "llm-scaling",
-    "architecture"
-  ],
-  "reading_time_minutes": 6,
-  "pinned": false,
-  "research_window": "2026-02-11 through 2026-03-25"
-}, {
-  "id": "3001",
-  "slug": "three-team-trap",
-  "title": "The Three-Team Trap",
-  "hook": "The platform-team inflection arrives when duplicated AI infrastructure across teams costs more than a platform team — and that crossover happens at three teams, not ten.",
-  "path": "articles/three-team-trap.html",
-  "date": "2025-03-15",
-  "status": "published",
-  "format": "case-study",
-  "tags": ["org-design", "platform-team", "ai-infrastructure", "scaling"],
-  "reading_time_minutes": 7,
-  "pinned": false,
-  "research_window": "2025-02-08 to 2025-03-15"
-}, {
-  "id": "4827",
-  "slug": "the-audit-bill-nobody-budgeted",
-  "title": "The Audit Bill Nobody Budgeted",
-  "hook": "AI compliance at scale is an infrastructure cost that compounds with time and volume — and by the time it surfaces in legal's budget, retrofitting costs 10x what building it in would have.",
-  "path": "articles/the-audit-bill-nobody-budgeted.html",
-  "date": "2025-02-18",
-  "status": "published",
-  "format": "case-study",
-  "tags": ["compliance-at-scale", "eu-ai-act", "audit-infrastructure", "cost-economics"],
-  "reading_time_minutes": 8,
-  "pinned": false,
-  "research_window": "2025-01-14 through 2025-02-18"
-},{
-  "id": "0314",
-  "slug": "five-teams-zero-owners",
-  "title": "Five Teams, Zero Owners",
-  "hook": "Your org chart assumes one owner per system. Agents have five.",
-  "path": "articles/five-teams-zero-owners.html",
-  "date": "2025-03-14",
-  "status": "published",
-  "format": "case-study",
-  "tags": ["org-design", "ai-agents", "coordination-cost", "scale-problems"],
-  "reading_time_minutes": 6,
-  "pinned": false,
-  "research_window": "2025-02-07 to 2025-03-14"
-}
+  "articles": [
+    {
+      "id": "2804",
+      "slug": "boundary-collapse-ai-org-design",
+      "title": "When Code Replaces Departments",
+      "hook": "Scaling AI isn't a model problem; it's a boundary problem. When an agent's output volume rivals a department, the wall between platform engineering and business operations collapses.",
+      "path": "articles/boundary-collapse-ai-org-design.html",
+      "date": "2024-03-12",
+      "status": "published",
+      "format": "case-study",
+      "tags": [
+        "org-design",
+        "ai-scaling",
+        "cost-economics"
+      ],
+      "reading_time_minutes": 6,
+      "pinned": false,
+      "research_window": "2024-02-13 to 2024-03-12"
+    },
+    {
+      "id": "8472",
+      "slug": "who-owns-the-agent",
+      "title": "Who Owns the Agent?",
+      "hook": "Scaling AI is not a compute problem; it is an orchestration boundary problem.",
+      "path": "articles/who-owns-the-agent.html",
+      "date": "2026-03-18",
+      "status": "published",
+      "format": "case-study",
+      "tags": [
+        "org-design",
+        "agentic-ai",
+        "scale"
+      ],
+      "reading_time_minutes": 7,
+      "pinned": false,
+      "research_window": "2026-02-18 to 2026-03-18"
+    },
+    {
+      "id": "8217",
+      "slug": "who-signed-off",
+      "title": "Who Signed Off?",
+      "hook": "The audit gap isn't a compliance problem — it's an architecture problem. You cannot retroactively inspect what you didn't instrument at the point of decision.",
+      "path": "articles/who-signed-off.html",
+      "date": "2025-02-18",
+      "status": "published",
+      "format": "case-study",
+      "tags": [
+        "compliance-at-scale",
+        "eu-ai-act",
+        "architecture",
+        "audit-infrastructure"
+      ],
+      "reading_time_minutes": 7,
+      "pinned": false,
+      "research_window": "2025-01-07 to 2025-02-18"
+    },
+    {
+      "id": "1019",
+      "slug": "ownership-void-org-design-ai-scale",
+      "title": "The Ownership Void",
+      "hook": "Org design for AI systems fails when treated as a tooling problem rather than an authority boundary problem.",
+      "path": "articles/ownership-void-org-design-ai-scale.html",
+      "date": "2026-03-14",
+      "status": "published",
+      "format": "case-study",
+      "tags": [
+        "org-design",
+        "scaling",
+        "governance",
+        "infrastructure"
+      ],
+      "reading_time_minutes": 4,
+      "pinned": false,
+      "research_window": "2026-02-14 to 2026-03-14"
+    },
+    {
+      "id": "0417",
+      "slug": "leverage-lost",
+      "title": "Leverage Lost",
+      "hook": "AI vendor lock-in isn't a contract trap; it's an architectural one. Your prompts are fused to a single latent space.",
+      "path": "articles/leverage-lost.html",
+      "date": "2026-04-17",
+      "status": "published",
+      "format": "case-study",
+      "tags": [
+        "vendor-lock-in",
+        "ai-economics",
+        "infrastructure-migration",
+        "scale"
+      ],
+      "reading_time_minutes": 6,
+      "pinned": false,
+      "research_window": "2026-03-20 to 2026-04-17"
+    },
+    {
+      "id": "5520",
+      "slug": "the-sandbox-lie",
+      "title": "The Sandbox Lie",
+      "hook": "Pilot reliability is a structural illusion. The failures that destroy AI systems at scale do not exist in a sandbox—they require the permission scope and volume of production to physically manifest.",
+      "path": "articles/the-sandbox-lie.html",
+      "date": "2026-05-20",
+      "status": "published",
+      "format": "case-study",
+      "tags": [
+        "post-mvp-reliability",
+        "ai-infrastructure",
+        "agentic-loops"
+      ],
+      "reading_time_minutes": 6,
+      "pinned": false,
+      "research_window": "2026-04-15 to 2026-05-20"
+    },
+    {
+      "id": "0027",
+      "slug": "own-the-front-door",
+      "title": "Own the Front Door",
+      "hook": "Centralizing AI ownership creates a bottleneck, not a center of excellence — the iteration loop needs to live where domain context lives.",
+      "path": "articles/own-the-front-door.html",
+      "date": "2025-03-14",
+      "status": "published",
+      "format": "case-study",
+      "tags": [
+        "org-design",
+        "ai-teams",
+        "iteration-latency",
+        "platform-vs-embedded"
+      ],
+      "reading_time_minutes": 6,
+      "pinned": false,
+      "research_window": "2025-02-07 to 2025-03-14"
+    },
+    {
+      "id": "4829",
+      "slug": "the-hostage-architecture",
+      "title": "The Hostage Architecture",
+      "hook": "Vendor lock-in in AI extends far beyond data-egress fees; it functions as a subsidized unit-economics trap and a cognitive-calcification crisis.",
+      "path": "articles/the-hostage-architecture.html",
+      "date": "2026-04-17",
+      "status": "published",
+      "format": "case-study",
+      "tags": [
+        "vendor-lock-in",
+        "ai-infrastructure",
+        "unit-economics"
+      ],
+      "reading_time_minutes": 7,
+      "pinned": false,
+      "research_window": "2026-03-13 to 2026-04-17"
+    },
+    {
+      "id": "3048",
+      "slug": "cheap-tokens-massive-bills",
+      "title": "Cheap Tokens, Massive Bills",
+      "hook": "Dropping unit token prices do not reduce your cloud bill; they lower the barrier for product teams to introduce context payloads and autonomous multi-turn loops that multiply token volume exponentially.",
+      "path": "articles/cheap-tokens-massive-bills.html",
+      "date": "2026-03-25",
+      "status": "published",
+      "format": "case-study",
+      "tags": [
+        "inference-economics",
+        "jevons-paradox",
+        "llm-scaling",
+        "architecture"
+      ],
+      "reading_time_minutes": 6,
+      "pinned": false,
+      "research_window": "2026-02-11 to 2026-03-25"
+    },
+    {
+      "id": "3001",
+      "slug": "three-team-trap",
+      "title": "The Three-Team Trap",
+      "hook": "The platform-team inflection arrives when duplicated AI infrastructure across teams costs more than a platform team — and that crossover happens at three teams, not ten.",
+      "path": "articles/three-team-trap.html",
+      "date": "2025-03-15",
+      "status": "published",
+      "format": "case-study",
+      "tags": [
+        "org-design",
+        "platform-team",
+        "ai-infrastructure",
+        "scaling"
+      ],
+      "reading_time_minutes": 7,
+      "pinned": false,
+      "research_window": "2025-02-08 to 2025-03-15"
+    },
+    {
+      "id": "4827",
+      "slug": "the-audit-bill-nobody-budgeted",
+      "title": "The Audit Bill Nobody Budgeted",
+      "hook": "AI compliance at scale is an infrastructure cost that compounds with time and volume — and by the time it surfaces in legal's budget, retrofitting costs 10x what building it in would have.",
+      "path": "articles/the-audit-bill-nobody-budgeted.html",
+      "date": "2025-02-18",
+      "status": "published",
+      "format": "case-study",
+      "tags": [
+        "compliance-at-scale",
+        "eu-ai-act",
+        "audit-infrastructure",
+        "cost-economics"
+      ],
+      "reading_time_minutes": 8,
+      "pinned": false,
+      "research_window": "2025-01-14 to 2025-02-18"
+    },
+    {
+      "id": "0314",
+      "slug": "five-teams-zero-owners",
+      "title": "Five Teams, Zero Owners",
+      "hook": "Your org chart assumes one owner per system. Agents have five.",
+      "path": "articles/five-teams-zero-owners.html",
+      "date": "2025-03-14",
+      "status": "published",
+      "format": "case-study",
+      "tags": [
+        "org-design",
+        "ai-agents",
+        "coordination-cost",
+        "scale-problems"
+      ],
+      "reading_time_minutes": 6,
+      "pinned": false,
+      "research_window": "2025-02-07 to 2025-03-14"
+    },
+    {
+      "id": "6101",
+      "slug": "the-eval-mirage",
+      "title": "The Eval Mirage",
+      "hook": "Eval coverage isn't a test-suite problem; it's a sampling problem. A 2,000-case suite has an 18% chance of even containing a 1-in-10,000 failure — while production serves that failure 100 times a day.",
+      "path": "articles/the-eval-mirage.html",
+      "date": "2026-10-07",
+      "status": "published",
+      "format": "case-study",
+      "tags": [
+        "post-mvp-reliability",
+        "evaluation",
+        "ai-infrastructure",
+        "scale"
+      ],
+      "reading_time_minutes": 6,
+      "pinned": false,
+      "research_window": "2026-09-02 to 2026-10-07"
+    },
+    {
+      "id": "6102",
+      "slug": "who-gets-paged-for-wrong",
+      "title": "Who Gets Paged for Wrong?",
+      "hook": "Quality incidents aren't a monitoring problem; they're an ownership problem. Your AI system has an on-call rotation for being down and nobody on call for being wrong — so wrong runs for weeks.",
+      "path": "articles/who-gets-paged-for-wrong.html",
+      "date": "2026-10-07",
+      "status": "published",
+      "format": "case-study",
+      "tags": [
+        "org-design",
+        "post-mvp-reliability",
+        "on-call",
+        "ai-agents"
+      ],
+      "reading_time_minutes": 5,
+      "pinned": false,
+      "research_window": "2026-09-02 to 2026-10-07"
+    },
+    {
+      "id": "6103",
+      "slug": "the-cache-hit-bill",
+      "title": "The Cache Hit Bill",
+      "hook": "Your inference bill isn't set by the model's price; it's set by your cache hit rate — and that rate is set by how many teams can edit the prompt prefix. Below about 22%, caching costs more than it saves.",
+      "path": "articles/the-cache-hit-bill.html",
+      "date": "2026-10-07",
+      "status": "published",
+      "format": "cost-anatomy",
+      "tags": [
+        "cost-economics",
+        "inference-economics",
+        "prompt-caching",
+        "platform-team"
+      ],
+      "reading_time_minutes": 4,
+      "pinned": false,
+      "research_window": "2026-09-02 to 2026-10-07"
+    },
+    {
+      "id": "6104",
+      "slug": "the-residency-tax",
+      "title": "The Residency Tax",
+      "hook": "Data residency isn't a legal checkbox; it's a capacity-partitioning decision. Every region you promise splits your quota, your cache and your failover — and four regions can cost about a quarter more capacity than one pool.",
+      "path": "articles/the-residency-tax.html",
+      "date": "2026-10-07",
+      "status": "published",
+      "format": "case-study",
+      "tags": [
+        "compliance-at-scale",
+        "data-residency",
+        "ai-infrastructure",
+        "capacity-planning"
+      ],
+      "reading_time_minutes": 5,
+      "pinned": false,
+      "research_window": "2026-09-02 to 2026-10-07"
+    },
+    {
+      "id": "6105",
+      "slug": "quota-is-an-org-chart",
+      "title": "Quota Is an Org Chart",
+      "hook": "Rate limits aren't a vendor constraint; they're an internal allocation problem. Providers meter the organisation, not the team — so one unscheduled batch job can throttle more than a quarter of your customer-facing traffic.",
+      "path": "articles/quota-is-an-org-chart.html",
+      "date": "2026-10-07",
+      "status": "published",
+      "format": "case-study",
+      "tags": [
+        "platform-team",
+        "rate-limits",
+        "org-design",
+        "ai-infrastructure"
+      ],
+      "reading_time_minutes": 5,
+      "pinned": false,
+      "research_window": "2026-09-02 to 2026-10-07"
+    },
+    {
+      "id": "6106",
+      "slug": "rent-reserve-or-call",
+      "title": "Rent, Reserve, or Call",
+      "hook": "Self-hosting isn't a cost decision; it's a utilization bet. At on-demand H100 prices, a 70B model at 1,500 tokens/s never beats a $1-per-million API — with a 3-year commitment, it needs 70% sustained utilization.",
+      "path": "articles/rent-reserve-or-call.html",
+      "date": "2026-10-07",
+      "status": "published",
+      "format": "cost-anatomy",
+      "tags": [
+        "inference-infrastructure",
+        "cost-economics",
+        "gpu-capacity",
+        "vendor-lock-in"
+      ],
+      "reading_time_minutes": 5,
+      "pinned": false,
+      "research_window": "2026-09-02 to 2026-10-07"
+    }
   ]
 }

@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quota Is an Org Chart — Scaling AI Systems</title>
+<meta name="description" content="Rate limits aren&#x27;t a vendor constraint; they&#x27;re an internal allocation problem. Providers meter the organisation, not the team — so one unscheduled batch job can throttle more than a quarter of your customer-facing traffic.">
+<link rel="canonical" href="https://iggym.github.io/scaling-ai-systems/articles/quota-is-an-org-chart.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Scaling AI Systems">
+<meta property="og:title" content="Quota Is an Org Chart">
+<meta property="og:description" content="Rate limits aren&#x27;t a vendor constraint; they&#x27;re an internal allocation problem. Providers meter the organisation, not the team — so one unscheduled batch job can throttle more than a quarter of your customer-facing traffic.">
+<meta property="og:url" content="https://iggym.github.io/scaling-ai-systems/articles/quota-is-an-org-chart.html">
+<meta property="article:published_time" content="2026-10-07">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Quota Is an Org Chart">
+<meta name="twitter:description" content="Rate limits aren&#x27;t a vendor constraint; they&#x27;re an internal allocation problem. Providers meter the organisation, not the team — so one unscheduled batch job can throttle more than a quarter of your customer-facing traffic.">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Quota Is an Org Chart", "description": "Rate limits aren't a vendor constraint; they're an internal allocation problem. Providers meter the organisation, not the team — so one unscheduled batch job can throttle more than a quarter of your customer-facing traffic.", "datePublished": "2026-10-07", "dateModified": "2026-10-07", "mainEntityOfPage": "https://iggym.github.io/scaling-ai-systems/articles/quota-is-an-org-chart.html", "author": {"@type": "Organization", "name": "Scaling AI Systems"}, "publisher": {"@type": "Organization", "name": "Scaling AI Systems", "url": "https://iggym.github.io/scaling-ai-systems/"}, "keywords": "platform-team, rate-limits, org-design, ai-infrastructure", "wordCount": 1060}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@600;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--dark:#101418;--panel:#161B21;--panel2:#1B2129;--paper:#F4F1EC;--dim:#C9C5BC;--muted:#9A9EA6;--line:rgba(244,241,236,.12);
+--orange:#E4572E;--teal:#3A9A9B;--yellow:#FFD166;--display:'Libre Franklin',sans-serif;--body:'Inter',sans-serif;--mono:'IBM Plex Mono',monospace;}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--dark);color:var(--paper);font-family:var(--body);font-size:17.5px;line-height:1.68;-webkit-font-smoothing:antialiased}
+a{color:var(--paper)}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--yellow);outline-offset:3px}
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--orange);z-index:50}
+.topbar{position:sticky;top:0;z-index:40;background:rgba(16,20,24,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:12px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.topbar .mark{font-family:var(--display);font-weight:800;font-size:13px;letter-spacing:.02em;text-transform:uppercase;color:var(--orange);text-decoration:none;white-space:nowrap}
+.crumbs{font-family:var(--mono);font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crumbs a{color:var(--muted)}
+.crumbs ol{list-style:none;margin:0;padding:0;display:inline}
+.crumbs li{display:inline}
+.crumbs li+li::before{content:" / "}
+.rt{font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap}
+.toc-btn{display:none;background:none;border:1px solid var(--line);color:var(--paper);font-family:var(--mono);font-size:11px;padding:5px 9px;border-radius:3px;cursor:pointer}
+header.hero{max-width:900px;margin:0 auto;padding:64px 20px 28px}
+.eyebrow{font-family:var(--mono);font-size:11.5px;color:var(--orange);letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(2.3rem,6vw,3.9rem);line-height:1.03;letter-spacing:-.015em;margin:0 0 16px}
+h1 .accent{color:var(--orange)}
+.sub{font-size:1.15rem;color:var(--dim);max-width:640px;margin:0}
+.meta{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:18px;display:flex;gap:16px;flex-wrap:wrap}
+.spectrum{max-width:900px;margin:0 auto;padding:8px 20px 24px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.spec{padding:18px 20px;border-radius:4px;background:var(--panel)}
+.spec.before{border-left:3px solid var(--teal)}
+.spec.after{border-left:3px solid var(--orange)}
+.spec .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+.spec.before .lbl{color:var(--teal)}
+.spec.after .lbl{color:var(--orange)}
+.spec p{margin:0;font-size:15.5px;color:var(--dim);line-height:1.5}
+.spec strong{color:var(--paper)}
+.layout{max-width:1140px;margin:0 auto;padding:12px 20px 40px;display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:48px;align-items:start}
+article{min-width:0;max-width:72ch}
+article h2{font-family:var(--display);font-weight:800;font-size:1.55rem;line-height:1.2;letter-spacing:-.01em;margin:2.6rem 0 1rem;scroll-margin-top:72px}
+article h3{font-family:var(--display);font-weight:600;font-size:1.1rem;margin:1.6rem 0 .6rem}
+article p{margin:0 0 1.15rem}
+article ul,article ol{margin:0 0 1.2rem 1.2rem;padding:0}
+article li{margin-bottom:.45rem}
+article strong{font-weight:600}
+sup.cite a{font-family:var(--mono);font-size:.68em;color:var(--yellow);text-decoration:none;margin-left:1px}
+.marker{display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:2px;margin-bottom:10px}
+.marker.before{color:var(--teal);border:1px solid var(--teal)}
+.marker.after{color:var(--orange);border:1px solid var(--orange)}
+.beat{margin:2rem 0;padding:20px 22px;background:var(--panel);border:1px solid var(--line);border-radius:4px}
+.beat .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--yellow);margin-bottom:10px}
+.beat .shift{font-family:var(--display);font-weight:600;font-size:1.08rem;line-height:1.4;margin-bottom:12px}
+.beat .old{color:var(--teal)}
+.beat .new{color:var(--orange)}
+.beat .arrow{color:var(--muted);margin:0 .4rem}
+.beat p{margin:0;color:var(--dim);font-size:16px}
+.pq{margin:2rem 0;padding:22px 24px;border-left:4px solid var(--orange);background:rgba(228,87,46,.07);border-radius:0 4px 4px 0}
+.pq p{font-family:var(--display);font-weight:600;font-size:1.22rem;line-height:1.4;margin:0 0 12px}
+.share{display:flex;gap:10px;flex-wrap:wrap}
+.share a{font-family:var(--mono);font-size:11px;color:var(--muted);text-decoration:none;border:1px solid var(--line);padding:4px 10px;border-radius:2px}
+.share a:hover{color:var(--paper);border-color:var(--orange)}
+.math{font-family:var(--mono);font-size:15px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--yellow);padding:14px 16px;border-radius:3px;margin:1.2rem 0 1.4rem;overflow-x:auto}
+.aside{font-size:15px;color:var(--dim);background:var(--panel);border-left:2px solid var(--muted);padding:12px 16px;margin:1.4rem 0;border-radius:0 3px 3px 0}
+.tbl-wrap{overflow-x:auto;margin:1.2rem 0 1.6rem;border:1px solid var(--line);border-radius:4px}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.45}
+caption{caption-side:top;text-align:left;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:12px 14px 4px}
+th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+th{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+tr:last-child td{border-bottom:none}
+td.num{font-family:var(--mono);white-space:nowrap}
+.tag{font-family:var(--mono);font-size:10px;padding:1px 6px;border-radius:2px;white-space:nowrap}
+.tag.reported{color:var(--teal);border:1px solid var(--teal)}
+.tag.derived{color:var(--yellow);border:1px solid var(--yellow)}
+.tag.assumed{color:var(--muted);border:1px solid var(--muted)}
+.widget{margin:2.2rem 0;padding:22px;background:var(--panel);border:1px solid var(--line);border-radius:6px}
+.widget h3{margin:0 0 4px;font-size:1.15rem}
+.widget .hint{font-size:14.5px;color:var(--muted);margin:0 0 16px}
+.ctrl{margin-bottom:14px}
+.ctrl label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12px;color:var(--dim);margin-bottom:6px;gap:12px}
+.ctrl output{color:var(--yellow)}
+input[type=range]{width:100%;accent-color:var(--orange);height:28px}
+.readouts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:16px 0 6px}
+.ro{background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:10px 12px}
+.ro .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.ro .v{font-family:var(--display);font-weight:800;font-size:1.35rem;margin-top:2px}
+.ro.warn .v{color:var(--orange)}
+.ro.ok .v{color:var(--teal)}
+.chart{margin-top:12px}
+.chart svg{width:100%;height:auto;display:block}
+.chart .axis{stroke:rgba(244,241,236,.25);stroke-width:1}
+.chart .lbl{font-family:var(--mono);font-size:10px;fill:var(--muted)}
+.chart .curve{fill:none;stroke:var(--teal);stroke-width:2.5}
+.chart .thr{stroke:var(--orange);stroke-width:1.2;stroke-dasharray:4 4}
+.chart .dot{fill:var(--yellow)}
+.wnote{font-size:14.5px;color:var(--dim);margin:10px 0 0}
+.actions{counter-reset:act;list-style:none;margin:0 0 1.4rem!important;padding:0!important}
+.actions li{counter-increment:act;position:relative;padding:16px 18px 16px 58px;background:var(--panel);border:1px solid var(--line);border-radius:4px;margin-bottom:12px!important}
+.actions li::before{content:counter(act);position:absolute;left:18px;top:14px;font-family:var(--display);font-weight:800;font-size:1.4rem;color:var(--orange)}
+.actions li p{margin:.35rem 0 0;font-size:16px;color:var(--dim)}
+.actions .wk{font-family:var(--mono);font-size:12px;color:var(--yellow)}
+.closing{margin:2rem 0;padding:20px 22px;border:1px solid var(--orange);border-radius:4px;background:linear-gradient(135deg,rgba(228,87,46,.12),rgba(228,87,46,.02))}
+.closing .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--orange);margin-bottom:6px}
+.closing p{margin:0;font-weight:500}
+.recall{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:1rem 0 1.6rem}
+.rc{appearance:none;text-align:left;font:inherit;color:inherit;cursor:pointer;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:16px;min-height:118px}
+.rc:hover{border-color:var(--orange)}
+.rc .q{font-size:15px;line-height:1.45}
+.rc .a{display:none;font-family:var(--display);font-weight:800;font-size:1.15rem;color:var(--yellow);line-height:1.3}
+.rc .t{display:block;font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:10px;letter-spacing:.06em;text-transform:uppercase}
+.rc[aria-pressed=true]{background:var(--panel2);border-color:var(--yellow)}
+.rc[aria-pressed=true] .q{display:none}
+.rc[aria-pressed=true] .a{display:block}
+.cmap{margin:1rem 0 1.6rem;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px}
+.cmap svg{width:100%;height:auto;display:block}
+.cmap .node rect{fill:var(--panel2);stroke:var(--teal);stroke-width:1.5}
+.cmap .node.core rect{stroke:var(--orange);stroke-width:2}
+.cmap .node text{font-family:var(--body);font-size:12.5px;fill:var(--paper);font-weight:600}
+.cmap .edge{stroke:rgba(244,241,236,.35);stroke-width:1.3;fill:none}
+.cmap .elbl{font-family:var(--mono);font-size:10px;fill:var(--yellow)}
+.cmap-text{font-size:14px;color:var(--muted)}
+.cmap-text summary{cursor:pointer;font-family:var(--mono);font-size:12px}
+.related{display:grid;gap:10px;margin:1rem 0 1.6rem}
+.related a{display:block;text-decoration:none;padding:14px 16px;background:var(--panel);border:1px solid var(--line);border-radius:4px}
+.related a:hover{border-color:var(--orange)}
+.related .t{font-family:var(--display);font-weight:800}
+.related .w{display:block;font-size:14.5px;color:var(--muted);margin-top:2px}
+ol.cites{font-size:14.5px;color:var(--dim);margin-left:1.4rem!important}
+ol.cites li{scroll-margin-top:80px}
+ol.cites a{color:var(--paper);word-break:break-word}
+ol.cites li:target{background:rgba(255,209,102,.1)}
+aside.side{position:sticky;top:76px}
+.sbox{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:16px;margin-bottom:16px}
+.sbox h2{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--orange);margin:0 0 12px}
+.thing{display:flex;gap:10px;font-size:14px;line-height:1.4;color:var(--muted);margin-bottom:12px;transition:color .4s}
+.thing .dot{flex:0 0 9px;height:9px;border-radius:50%;background:var(--line);margin-top:5px;transition:background .4s}
+.thing.on{color:var(--paper)}
+.thing.on .dot{background:var(--orange)}
+.toc ol{list-style:none;margin:0;padding:0;font-size:14px}
+.toc li{margin-bottom:7px}
+.toc a{color:var(--muted);text-decoration:none}
+.toc a:hover,.toc a.cur{color:var(--paper)}
+footer.foot{border-top:1px solid var(--line);padding:32px 20px;text-align:center;font-family:var(--mono);font-size:12px}
+footer.foot a{color:var(--orange);margin:0 12px}
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
+.reveal.in{opacity:1;transform:none}
+@media (max-width:1023px){
+ .layout{grid-template-columns:minmax(0,1fr)}
+ aside.side{position:fixed;top:0;right:0;bottom:0;width:min(320px,86vw);background:var(--dark);border-left:1px solid var(--line);padding:70px 16px 16px;overflow-y:auto;transform:translateX(100%);transition:transform .25s ease;z-index:45}
+ aside.side.open{transform:none}
+ .toc-btn{display:inline-block}
+}
+@media (max-width:640px){
+ .spectrum{grid-template-columns:1fr}
+ .crumbs{display:none}
+ body{font-size:17px}
+}
+@media (prefers-reduced-motion:reduce){
+ *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+ .reveal{opacity:1;transform:none}
+}
+@media print{.topbar,#progress,aside.side,.share,.widget input{display:none}body{background:#fff;color:#000}}
+</style>
+</head>
+<body>
+<div id="progress" aria-hidden="true"></div>
+<header class="topbar">
+  <a class="mark" href="../index.html">Scaling AI Systems</a>
+  <nav class="crumbs" aria-label="Breadcrumb"><ol><li><a href="../index.html">Home</a></li><li>Case Studies</li><li aria-current="page">Quota Is an Org Chart</li></ol></nav>
+  <span class="rt">5 min read</span>
+  <button type="button" class="toc-btn" aria-expanded="false" aria-controls="sidebar">Contents</button>
+</header>
+
+<main>
+<header class="hero">
+  <div class="eyebrow">Platform Architecture · Under Load</div>
+  <h1>Quota Is an <span class="accent">Org Chart</span></h1>
+  <p class="sub">Your provider meters the organisation. So the first team to ship a backfill sets everyone else&#x27;s error rate.</p>
+  <div class="meta"><span>2026-10-07</span><span>5 min read</span><span>platform-team · rate-limits · org-design · ai-infrastructure</span></div>
+</header>
+
+<section class="spectrum" aria-label="Assumption versus evidence">
+  <div class="spec before"><div class="lbl">Common Assumption</div><p>429 errors mean we need a <strong>higher tier</strong> from the provider. Rate limits are the vendor's problem to raise.</p></div>
+  <div class="spec after"><div class="lbl">Actual Inflection</div><p>A 1.5M-token-per-minute backfill on a 2M limit throttles <strong>~29%</strong> of 1.3M TPM interactive traffic at peak. The fix is <strong>allocation</strong> — sub-limits, lanes and caching — not a bigger tier.</p></div>
+</section>
+
+<div class="layout">
+<article>
+  <span class="marker before">Before scale</span>
+  <p>Every major model API meters usage at a level above the team that builds the feature. OpenAI defines rate limits at the organisation and project level — requests and tokens per minute and per day — and some model families share a single limit, so calls to any model in the group draw from the same budget.<sup class="cite"><a href="#cite-1" aria-label="Source 1">[1]</a></sup> Anthropic measures requests, input tokens and output tokens per minute at the organisation level, with optional workspace-level sub-limits set by administrators, and refills capacity continuously with a token-bucket algorithm rather than resetting each minute.<sup class="cite"><a href="#cite-2" aria-label="Source 2">[2]</a></sup></p>
+<p>Those are sensible designs for a provider. Inside a company they create a commons. The support assistant, the coding agent, the nightly document-classification job and the data-science team's evaluation run all draw from one bucket. When the bucket runs dry, the provider returns 429s to whichever request arrives next — and it has no idea which of your teams matters more.</p>
+<p>At pilot scale this never comes up. At production scale it decides who has an incident on Tuesday morning.</p>
+
+  <div class="beat reveal"><div class="lbl">Perspective shift — beat 1</div><div class="shift"><span class="old">“We hit the provider&#x27;s rate limit”</span><span class="arrow" aria-label="becomes">→</span><span class="new">“One of our teams spent everyone&#x27;s rate limit”</span></div><p>A 429 looks like an external failure, so it gets an external fix: ask the account team for a higher tier. OpenAI raises tiers automatically as spend grows, and enterprise contracts raise them further.<sup class="cite"><a href="#cite-1" aria-label="Source 1">[1]</a></sup><sup class="cite"><a href="#cite-4" aria-label="Source 4">[4]</a></sup> But a bigger bucket does not change who drinks from it. If the backfill job is written to use whatever is available — and most are, because that is the fastest way to finish — it will use the new headroom too. The cause was never the size of the limit. It was that nobody decided who gets it.</p></div>
+
+  <h2 id="thesis">A Shared Limit Is a Shared Budget</h2>
+  <p>Treat the organisation's rate limit as what it is: a budget, denominated in tokens per minute, shared by every AI workload in the company. Budgets need allocation rules, owners and enforcement. Most AI orgs have none of the three for rate limits. They have a single API key, or a handful of projects created ad hoc, and a hope that peaks don't coincide.</p>
+<p>Peaks do coincide, because the workloads fighting over the bucket follow the same clock. Interactive traffic peaks in business hours. Batch jobs get scheduled “overnight” in a time zone that is somebody else's business hours. Evaluation sweeps run when a release is close — exactly when the product is being demoed. The collision is structural, not bad luck.</p>
+<p>That is why quota is an org chart. Whoever controls the allocation decides which team's users see errors when demand exceeds supply. If nobody controls it, the allocation is made by whichever job is greediest — usually the one with no users waiting on it.</p>
+  <blockquote class="pq reveal"><p>Whoever controls the allocation decides which team&#x27;s users see errors when demand exceeds supply.</p><div class="share"><a href="https://x.com/intent/tweet?text=Whoever%20controls%20the%20allocation%20decides%20which%20team%27s%20users%20see%20errors%20when%20demand%20exceeds%20supply.&amp;url=https%3A%2F%2Figgym.github.io%2Fscaling-ai-systems%2Farticles%2Fquota-is-an-org-chart.html" target="_blank" rel="noopener">Share on X</a><a href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Figgym.github.io%2Fscaling-ai-systems%2Farticles%2Fquota-is-an-org-chart.html" target="_blank" rel="noopener">Share on LinkedIn</a></div></blockquote>
+
+  <h2 id="anatomy">Anatomy of a Tuesday Morning</h2>
+  <p>Take one organisation-wide input limit of 2 million tokens per minute. Interactive traffic — support assistant, in-product copilot, agent sessions — peaks at 1.3 million. A data team launches a document backfill sized to finish fast: 1.5 million tokens per minute. With no prioritisation, the provider throttles whichever requests arrive when the bucket is empty, so interactive traffic loses roughly in proportion to its share of demand.</p>
+  <div class="tbl-wrap"><table><caption>Contention on a shared input-token limit (illustrative)</caption><thead><tr><th scope="col">Line item</th><th scope="col">Value</th><th scope="col">Basis</th></tr></thead><tbody><tr><th scope="row">Organisation input limit</th><td>2.0M tokens/min</td><td><span class="tag assumed">assumed</span>; limits are per org/project<sup class="cite"><a href="#cite-1" aria-label="Source 1">[1]</a></sup><sup class="cite"><a href="#cite-2" aria-label="Source 2">[2]</a></sup></td></tr><tr><th scope="row">Interactive peak demand</th><td>1.3M tokens/min</td><td><span class="tag assumed">assumed</span></td></tr><tr><th scope="row">Backfill job demand</th><td>1.5M tokens/min</td><td><span class="tag assumed">assumed</span></td></tr><tr><th scope="row">Total demand at peak</th><td>2.8M tokens/min</td><td><span class="tag derived">derived</span></td></tr><tr><th scope="row">Share of demand served</th><td>71.4%</td><td><span class="tag derived">derived</span> 2.0 ÷ 2.8</td></tr><tr><th scope="row">Interactive requests throttled</th><td>≈ 28.6%</td><td><span class="tag derived">derived</span> 1 − 2.0 ÷ 2.8, proportional sharing</td></tr><tr><th scope="row">Effective input capacity at 80% cache hits</th><td>10M tokens/min</td><td><span class="tag derived">derived</span> 2M ÷ 0.2; cached reads excluded from ITPM on most Claude models<sup class="cite"><a href="#cite-2" aria-label="Source 2">[2]</a></sup></td></tr></tbody></table></div>
+  <div class="math">Throttled share of interactive traffic = 1 − L ÷ (I + B) when I + B > L. With L = 2.0M, I = 1.3M: harmless until B = <strong>0.7M</strong>; at B = 1.5M, <strong>28.6%</strong> of customer-facing requests fail or retry.</div>
+
+  <section class="widget" id="widget" aria-labelledby="w-title">
+    <h3 id="w-title">How big can the batch job get before customers notice?</h3>
+    <p class="hint">Set your limit, interactive peak and batch demand. The curve shows the share of interactive requests throttled at peak, with no prioritisation in place.</p>
+    <div class="ctrl"><label for="in-b"><span>Batch job demand (M tokens/min)</span><output id="out-b" for="in-b"></output></label><input type="range" id="in-b" min="0" max="4" step="0.1" value="1.5"></div><div class="ctrl"><label for="in-l"><span>Organisation limit (M tokens/min)</span><output id="out-l" for="in-l"></output></label><input type="range" id="in-l" min="0.5" max="10" step="0.1" value="2"></div><div class="ctrl"><label for="in-i"><span>Interactive peak (M tokens/min)</span><output id="out-i" for="in-i"></output></label><input type="range" id="in-i" min="0.1" max="8" step="0.1" value="1.3"></div><div class="ctrl"><label for="in-h"><span>Cache hit rate on interactive input</span><output id="out-h" for="in-h"></output></label><input type="range" id="in-h" min="0" max="90" step="5" value="0"></div>
+    <div class="readouts" id="readouts" aria-live="polite"></div>
+    <div class="chart"><svg id="wchart" viewBox="0 0 640 240" role="img" aria-label="Share of interactive traffic throttled as batch demand grows"></svg></div>
+    <p class="wnote" id="wnote"></p>
+  </section>
+
+  <span class="marker after">After scale</span>
+  <div class="beat reveal"><div class="lbl">Perspective shift — beat 2</div><div class="shift"><span class="old">“Each team manages its own API usage”</span><span class="arrow" aria-label="becomes">→</span><span class="new">“Each team&#x27;s usage is every team&#x27;s latency”</span></div><p>Distributed ownership of a shared limit fails the same way any unpriced commons does. No team is rewarded for leaving headroom, and every team is rewarded for finishing faster. Retries make it worse: throttled clients back off and retry, adding demand exactly when the bucket is empty, so a short overload can stretch into a long one. The second-order cost is trust. After two or three incidents, product teams ask for their own provider accounts — which removes the contention but recreates the duplicated-infrastructure problem a platform team exists to prevent.</p></div>
+
+  <h2 id="pattern">The Tools Already Exist</h2>
+  <p>Providers and clouds already ship the mechanisms for allocation. What's usually missing is the decision to use them and someone who owns the policy.</p>
+<p>Workspace and project sub-limits turn one org-wide bucket into per-team budgets.<sup class="cite"><a href="#cite-1" aria-label="Source 1">[1]</a></sup><sup class="cite"><a href="#cite-2" aria-label="Source 2">[2]</a></sup> Spillover on Azure sends requests that overflow a provisioned deployment — the ones that would get a 429 — to a standard pay-as-you-go deployment instead of failing them, which gives interactive traffic a defined overflow path.<sup class="cite"><a href="#cite-3" aria-label="Source 3">[3]</a></sup> Caching raises the effective ceiling: because cached reads don't count towards Anthropic's input limit on most models, an 80% hit rate turns a 2M-token limit into roughly 10M tokens of total input per minute.<sup class="cite"><a href="#cite-2" aria-label="Source 2">[2]</a></sup></p>
+<p>The common thread: each mechanism encodes a priority. Somebody has to decide that the support assistant outranks the backfill and the backfill outranks the experiment. That decision is organisational, and it is the actual work.</p>
+  <div class="tbl-wrap"><table><caption>Allocation mechanisms by layer</caption><thead><tr><th scope="col">Mechanism</th><th scope="col">Where</th><th scope="col">What it allocates</th><th scope="col">Who must own it</th></tr></thead><tbody><tr><th scope="row">Project / workspace sub-limits</th><td>OpenAI projects, Anthropic workspaces<sup class="cite"><a href="#cite-1" aria-label="Source 1">[1]</a></sup><sup class="cite"><a href="#cite-2" aria-label="Source 2">[2]</a></sup></td><td>Per-team ceilings inside the org limit</td><td>Platform team</td></tr><tr><th scope="row">Shared model-family limits</th><td>OpenAI<sup class="cite"><a href="#cite-1" aria-label="Source 1">[1]</a></sup></td><td>One budget across related models</td><td>Platform team (routing policy)</td></tr><tr><th scope="row">Spillover to standard deployments</th><td>Azure provisioned throughput<sup class="cite"><a href="#cite-3" aria-label="Source 3">[3]</a></sup></td><td>Overflow path for interactive traffic</td><td>Platform + finance</td></tr><tr><th scope="row">Prompt caching</th><td>Anthropic, OpenAI<sup class="cite"><a href="#cite-2" aria-label="Source 2">[2]</a></sup></td><td>Effective headroom under ITPM</td><td>Product teams (prefix discipline)</td></tr><tr><th scope="row">Central gateway with token budgets</th><td>Your infrastructure</td><td>Priority lanes, per-team quotas, backpressure</td><td>Platform team</td></tr></tbody></table></div>
+  <blockquote class="pq reveal"><p>A bigger bucket doesn&#x27;t change who drinks from it.</p><div class="share"><a href="https://x.com/intent/tweet?text=A%20bigger%20bucket%20doesn%27t%20change%20who%20drinks%20from%20it.&amp;url=https%3A%2F%2Figgym.github.io%2Fscaling-ai-systems%2Farticles%2Fquota-is-an-org-chart.html" target="_blank" rel="noopener">Share on X</a><a href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Figgym.github.io%2Fscaling-ai-systems%2Farticles%2Fquota-is-an-org-chart.html" target="_blank" rel="noopener">Share on LinkedIn</a></div></blockquote>
+
+  <h2 id="counter">Your Counterargument</h2>
+  <p>“A central gateway with quotas is a bottleneck in waiting. We'll recreate the platform-team queue we just escaped. Teams should own their keys and their limits; if they hit 429s, they can ask for more.”</p>
+<p>That's the right fear and the wrong conclusion. A gateway that requires approval for every new use case is a bottleneck. A gateway that enforces published, self-serve budgets is plumbing. The distinction is the same one as for platform teams generally: an internal vendor provides capacity with clear rules; a gatekeeper rations it through tickets. Separate keys per team also don't create separate capacity — every project still sits under the organisation's limit and tier,<sup class="cite"><a href="#cite-1" aria-label="Source 1">[1]</a></sup> so separate keys just hide the contention until it surfaces as an incident.</p>
+<p>Start with the lightest version: per-team sub-limits in the provider console and a rule that batch work runs in its own capped project. Build a gateway when you need priority lanes.</p>
+
+  <h2 id="actions">What to Do</h2>
+  <ol class="actions"><li><strong>Split the org limit into published team budgets.</strong><p>Use project or workspace sub-limits so each team's ceiling is explicit and the sum leaves headroom for interactive peaks.<sup class="cite"><a href="#cite-1" aria-label="Source 1">[1]</a></sup><sup class="cite"><a href="#cite-2" aria-label="Source 2">[2]</a></sup> Publish the table where every team can see it.</p><p class="wk">This week: export last month&#x27;s peak tokens-per-minute by key or project.</p></li><li><strong>Give batch work its own capped lane.</strong><p>Backfills, evaluation sweeps and re-indexing run in a separate project with a hard cap below <code>L − I</code>. Use asynchronous batch interfaces where your provider offers them.</p><p class="wk">This week: move the largest scheduled job into its own project with a cap.</p></li><li><strong>Rank workloads, and write the ranking down.</strong><p>Decide in advance which traffic gets throttled first when the limit is hit. Encode it as sub-limits, spillover<sup class="cite"><a href="#cite-3" aria-label="Source 3">[3]</a></sup> or gateway priorities — never as whoever retries fastest.</p><p class="wk">This week: draft a three-tier priority list and get engineering leads to agree to it.</p></li><li><strong>Count caching as capacity.</strong><p>Report effective throughput — total input ÷ uncached input — alongside the raw limit. A falling hit rate is a capacity incident in waiting.<sup class="cite"><a href="#cite-2" aria-label="Source 2">[2]</a></sup></p><p class="wk">This week: add cache-adjusted headroom to the capacity dashboard.</p></li></ol>
+
+  <div class="closing"><div class="lbl">In the next 24 hours</div><p>Find out how many API keys and projects your company uses against each AI provider, and who can launch a job that uses all of the organisation's rate limit. If the answer is “anyone”, put a cap on the next batch job before it runs.</p></div>
+
+  <h2 id="recall">Recall Check</h2>
+  <div class="recall"><button type="button" class="rc" aria-pressed="false"><span class="q">At what level does OpenAI define rate limits?</span><span class="a">Organisation and project</span><span class="t">Tap to flip</span></button><button type="button" class="rc" aria-pressed="false"><span class="q">Interactive share throttled in the example?</span><span class="a">≈ 28.6%</span><span class="t">Tap to flip</span></button><button type="button" class="rc" aria-pressed="false"><span class="q">Largest harmless batch job with L = 2.0M, I = 1.3M?</span><span class="a">0.7M tokens/min</span><span class="t">Tap to flip</span></button><button type="button" class="rc" aria-pressed="false"><span class="q">Effective input with a 2M limit and 80% cache hits?</span><span class="a">≈ 10M tokens/min</span><span class="t">Tap to flip</span></button></div>
+
+  <h2 id="map">Concept Map</h2>
+  <div class="cmap"><svg viewBox="0 0 720 380" role="img" aria-labelledby="cm-t cm-d"><title id="cm-t">Concept map</title><desc id="cm-d">Interactive traffic draws on Org rate limit; Batch jobs competes for Org rate limit; Org rate limit exhausted → 429s for users; Sub-limits / gateway caps Batch jobs; Cache hit rate expands Org rate limit; Sub-limits / gateway prioritises Interactive traffic</desc><defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="rgba(244,241,236,.5)"/></marker></defs><line class="edge" x1="360" y1="55" x2="360" y2="190" marker-end="url(#arr)"/><text class="elbl" x="360" y="118" text-anchor="middle">draws on</text><line class="edge" x1="617" y1="148" x2="360" y2="190" marker-end="url(#arr)"/><text class="elbl" x="488" y="165" text-anchor="middle">competes for</text><line class="edge" x1="360" y1="190" x2="103" y2="148" marker-end="url(#arr)"/><text class="elbl" x="232" y="165" text-anchor="middle">exhausted →</text><line class="edge" x1="201" y1="299" x2="617" y2="148" marker-end="url(#arr)"/><text class="elbl" x="409" y="220" text-anchor="middle">caps</text><line class="edge" x1="519" y1="299" x2="360" y2="190" marker-end="url(#arr)"/><text class="elbl" x="439" y="241" text-anchor="middle">expands</text><line class="edge" x1="201" y1="299" x2="360" y2="55" marker-end="url(#arr)"/><text class="elbl" x="281" y="173" text-anchor="middle">prioritises</text><g class="node core"><rect x="294" y="172" width="132" height="36" rx="4"/><text x="360" y="194" text-anchor="middle">Org rate limit</text></g><g class="node"><rect x="274" y="37" width="172" height="36" rx="4"/><text x="360" y="59" text-anchor="middle">Interactive traffic</text></g><g class="node"><rect x="557" y="130" width="120" height="36" rx="4"/><text x="617" y="152" text-anchor="middle">Batch jobs</text></g><g class="node"><rect x="453" y="281" width="132" height="36" rx="4"/><text x="519" y="303" text-anchor="middle">Cache hit rate</text></g><g class="node"><rect x="111" y="281" width="180" height="36" rx="4"/><text x="201" y="303" text-anchor="middle">Sub-limits / gateway</text></g><g class="node"><rect x="37" y="130" width="132" height="36" rx="4"/><text x="103" y="152" text-anchor="middle">429s for users</text></g></svg></div><details class="cmap-text"><summary>Concept map as text</summary><ul><li>Interactive traffic → <em>draws on</em> → Org rate limit</li><li>Batch jobs → <em>competes for</em> → Org rate limit</li><li>Org rate limit → <em>exhausted →</em> → 429s for users</li><li>Sub-limits / gateway → <em>caps</em> → Batch jobs</li><li>Cache hit rate → <em>expands</em> → Org rate limit</li><li>Sub-limits / gateway → <em>prioritises</em> → Interactive traffic</li></ul></details>
+
+  <h2 id="related">Related</h2>
+  <div class="related"><a href="three-team-trap.html"><span class="t">The Three-Team Trap</span><span class="w">When shared AI infrastructure pays for a platform team.</span></a><a href="the-cache-hit-bill.html"><span class="t">The Cache Hit Bill</span><span class="w">How prompt prefixes set both cost and headroom.</span></a><a href="own-the-front-door.html"><span class="t">Own the Front Door</span><span class="w">Centralised platform versus embedded ownership.</span></a></div>
+
+  <h2 id="sources">Sources</h2>
+  <ol class="cites"><li id="cite-1">OpenAI — <a href="https://developers.openai.com/api/docs/guides/rate-limits" target="_blank" rel="noopener">“Rate limits”</a> (accessed Oct 2026)</li><li id="cite-2">Anthropic (Claude Docs) — <a href="https://platform.claude.com/docs/en/api/rate-limits" target="_blank" rel="noopener">“Rate limits”</a> (accessed Oct 2026)</li><li id="cite-3">Microsoft Learn — <a href="https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/spillover-traffic-management" target="_blank" rel="noopener">“Manage traffic with spillover for provisioned deployments”</a> (accessed Oct 2026)</li><li id="cite-4">OpenAI Help Center — <a href="https://help.openai.com/en/articles/5955598-api-rate-limits" target="_blank" rel="noopener">“API rate limits”</a> (accessed Oct 2026)</li></ol>
+  <p class="aside">Numbers tagged <span class="tag reported">reported</span> come from the cited source; <span class="tag derived">derived</span> are arithmetic on reported figures, with the formula shown; <span class="tag assumed">assumed</span> are round illustrative inputs you should replace with your own.</p>
+</article>
+
+<aside class="side" id="sidebar" aria-label="Article guide">
+  <div class="sbox"><h2>Three Things</h2><div class="thing" data-sec="thesis"><span class="dot"></span><span>Providers meter the org; teams share one bucket.</span></div><div class="thing" data-sec="anatomy"><span class="dot"></span><span>1.5M TPM backfill on a 2M limit ≈ 29% interactive throttled.</span></div><div class="thing" data-sec="actions"><span class="dot"></span><span>Sub-limits, a capped batch lane, a written priority order.</span></div></div>
+  <nav class="sbox toc" aria-label="On this page"><h2>On this page</h2><ol><li><a href="#thesis">A Shared Limit Is a Shared Budget</a></li><li><a href="#anatomy">Anatomy of a Tuesday Morning</a></li><li><a href="#pattern">The Tools Already Exist</a></li><li><a href="#counter">Your Counterargument</a></li><li><a href="#actions">What to Do</a></li><li><a href="#recall">Recall Check</a></li><li><a href="#map">Concept Map</a></li><li><a href="#related">Related</a></li><li><a href="#sources">Sources</a></li></ol></nav>
+</aside>
+</div>
+</main>
+
+<footer class="foot"><a href="#">Back to top ↑</a><a href="../index.html">Home</a></footer>
+<script>
+window.WIDGET={
+ controls:[
+  {id:'b',value:1.5,fmt:function(x){return x.toFixed(1)+'M';}},
+  {id:'l',value:2,fmt:function(x){return x.toFixed(1)+'M';}},
+  {id:'i',value:1.3,fmt:function(x){return x.toFixed(1)+'M';}},
+  {id:'h',value:0,fmt:function(x){return Math.round(x)+'%';}}],
+ model:function(v){
+  var ie=v.i*(1-v.h/100), tot=ie+v.b, thr=tot>v.l?1-v.l/tot:0, safe=Math.max(0,v.l-ie);
+  return {y:thr*100,
+   readouts:[['Interactive throttled',(thr*100).toFixed(1)+'%',thr>0.01?'warn':'ok'],['Largest safe batch',safe.toFixed(2)+'M/min','ok'],['Metered interactive load',ie.toFixed(2)+'M/min']],
+   note: thr>0.01 ? 'Roughly '+(thr*100).toFixed(0)+'% of customer-facing calls see 429s or retries until the batch job finishes or is capped.' : 'Within the limit. Cap the batch job at '+safe.toFixed(2)+'M/min so it stays that way when interactive traffic grows.'};},
+ chart:{x:'b',ymax:70,threshold:1,thrlabel:'1% error budget',xlabel:'batch job demand (M tokens/min)',yfmt:function(y){return Math.round(y)+'%';},xfmt:function(x){return x.toFixed(1);}}
+};
+</script>
+<script>
+(function(){
+  var $=function(s,r){return (r||document).querySelector(s)}, $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+  var bar=$('#progress');
+  function onScroll(){var h=document.documentElement;var max=h.scrollHeight-h.clientHeight;if(bar)bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';}
+  window.addEventListener('scroll',onScroll,{passive:true});onScroll();
+  var btn=$('.toc-btn'), side=$('aside.side');
+  if(btn&&side){btn.addEventListener('click',function(){var o=side.classList.toggle('open');btn.setAttribute('aria-expanded',o?'true':'false');});
+    $$('a',side).forEach(function(a){a.addEventListener('click',function(){side.classList.remove('open');btn.setAttribute('aria-expanded','false');});});}
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(es){es.forEach(function(en){if(en.isIntersecting){en.target.classList.add('in');io.unobserve(en.target);}});},{rootMargin:'0px 0px -10% 0px'});
+    $$('.reveal').forEach(function(el){io.observe(el);});
+    var so=new IntersectionObserver(function(es){es.forEach(function(en){if(!en.isIntersecting)return;var id=en.target.id;
+      $$('.thing[data-sec="'+id+'"]').forEach(function(t){t.classList.add('on');});
+      $$('.toc a').forEach(function(a){a.classList.toggle('cur',a.getAttribute('href')==='#'+id);});});},{rootMargin:'0px 0px -55% 0px'});
+    $$('article h2[id]').forEach(function(h){so.observe(h);});
+  } else { $$('.reveal').forEach(function(el){el.classList.add('in');}); $$('.thing').forEach(function(t){t.classList.add('on');}); }
+  $$('.rc').forEach(function(c){c.addEventListener('click',function(){c.setAttribute('aria-pressed',c.getAttribute('aria-pressed')==='true'?'false':'true');});});
+  var W=window.WIDGET; if(!W) return;
+  var root=$('#widget'); if(!root) return;
+  var inputs={}; W.controls.forEach(function(c){inputs[c.id]=$('#in-'+c.id);});
+  function vals(over){var v={};W.controls.forEach(function(c){var el=inputs[c.id];v[c.id]=el?parseFloat(el.value):c.value;});if(over)for(var k in over)v[k]=over[k];return v;}
+  function draw(v){
+    var svg=$('#wchart'); if(!svg) return;
+    var C=W.chart, xc=W.controls.filter(function(c){return c.id===C.x;})[0];
+    var Wd=640,Ht=240,L=56,R=16,T=16,B=36, N=80, pts=[], ymax=C.ymax||0;
+    for(var i=0;i<=N;i++){var x=xc.min+(xc.max-xc.min)*i/N;var o={};o[C.x]=x;var y=W.model(vals(o)).y;pts.push([x,y]);if(!C.ymax&&isFinite(y))ymax=Math.max(ymax,y);}
+    if(C.threshold!=null&&!C.ymax)ymax=Math.max(ymax,C.threshold*1.15);
+    ymax=ymax||1;
+    var sx=function(x){return L+(x-xc.min)/(xc.max-xc.min)*(Wd-L-R);}, sy=function(y){return T+(1-Math.min(Math.max(y,0),ymax)/ymax)*(Ht-T-B);};
+    var d=pts.map(function(p,i){return (i?'L':'M')+sx(p[0]).toFixed(1)+','+sy(p[1]).toFixed(1);}).join(' ');
+    var cur=W.model(v).y, s='';
+    s+='<line class="axis" x1="'+L+'" y1="'+(Ht-B)+'" x2="'+(Wd-R)+'" y2="'+(Ht-B)+'"/><line class="axis" x1="'+L+'" y1="'+T+'" x2="'+L+'" y2="'+(Ht-B)+'"/>';
+    for(var t=0;t<=4;t++){var yv=ymax*t/4;s+='<text class="lbl" x="'+(L-6)+'" y="'+(sy(yv)+3)+'" text-anchor="end">'+C.yfmt(yv)+'</text>';}
+    for(var t2=0;t2<=4;t2++){var xv=xc.min+(xc.max-xc.min)*t2/4;s+='<text class="lbl" x="'+sx(xv)+'" y="'+(Ht-B+16)+'" text-anchor="middle">'+C.xfmt(xv)+'</text>';}
+    s+='<text class="lbl" x="'+((L+Wd-R)/2)+'" y="'+(Ht-2)+'" text-anchor="middle">'+C.xlabel+'</text>';
+    if(C.threshold!=null){s+='<line class="thr" x1="'+L+'" x2="'+(Wd-R)+'" y1="'+sy(C.threshold)+'" y2="'+sy(C.threshold)+'"/><text class="lbl" x="'+(Wd-R)+'" y="'+(sy(C.threshold)-5)+'" text-anchor="end" style="fill:var(--orange)">'+C.thrlabel+'</text>';}
+    s+='<path class="curve" d="'+d+'"/><circle class="dot" r="5" cx="'+sx(v[C.x])+'" cy="'+sy(cur)+'"/>';
+    svg.innerHTML=s;
+  }
+  function update(){
+    var v=vals(), out=W.model(v);
+    W.controls.forEach(function(c){var o=$('#out-'+c.id), el=inputs[c.id]; var txt=c.fmt(v[c.id]); if(o)o.textContent=txt; if(el)el.setAttribute('aria-valuetext',txt);});
+    var ro=$('#readouts'); if(ro) ro.innerHTML=out.readouts.map(function(r){return '<div class="ro '+(r[2]||'')+'"><div class="k">'+r[0]+'</div><div class="v">'+r[1]+'</div></div>';}).join('');
+    var n=$('#wnote'); if(n) n.textContent=out.note||'';
+    draw(v);
+  }
+  W.controls.forEach(function(c){if(inputs[c.id])inputs[c.id].addEventListener('input',update);});
+  update();
+})();
+</script>
+</body>
+</html>

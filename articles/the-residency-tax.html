@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Residency Tax — Scaling AI Systems</title>
+<meta name="description" content="Data residency isn&#x27;t a legal checkbox; it&#x27;s a capacity-partitioning decision. Every region you promise splits your quota, your cache and your failover — and four regions can cost about a quarter more capacity than one pool.">
+<link rel="canonical" href="https://iggym.github.io/scaling-ai-systems/articles/the-residency-tax.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Scaling AI Systems">
+<meta property="og:title" content="The Residency Tax">
+<meta property="og:description" content="Data residency isn&#x27;t a legal checkbox; it&#x27;s a capacity-partitioning decision. Every region you promise splits your quota, your cache and your failover — and four regions can cost about a quarter more capacity than one pool.">
+<meta property="og:url" content="https://iggym.github.io/scaling-ai-systems/articles/the-residency-tax.html">
+<meta property="article:published_time" content="2026-10-07">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The Residency Tax">
+<meta name="twitter:description" content="Data residency isn&#x27;t a legal checkbox; it&#x27;s a capacity-partitioning decision. Every region you promise splits your quota, your cache and your failover — and four regions can cost about a quarter more capacity than one pool.">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "The Residency Tax", "description": "Data residency isn't a legal checkbox; it's a capacity-partitioning decision. Every region you promise splits your quota, your cache and your failover — and four regions can cost about a quarter more capacity than one pool.", "datePublished": "2026-10-07", "dateModified": "2026-10-07", "mainEntityOfPage": "https://iggym.github.io/scaling-ai-systems/articles/the-residency-tax.html", "author": {"@type": "Organization", "name": "Scaling AI Systems"}, "publisher": {"@type": "Organization", "name": "Scaling AI Systems", "url": "https://iggym.github.io/scaling-ai-systems/"}, "keywords": "compliance-at-scale, data-residency, ai-infrastructure, capacity-planning", "wordCount": 1044}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@600;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--dark:#101418;--panel:#161B21;--panel2:#1B2129;--paper:#F4F1EC;--dim:#C9C5BC;--muted:#9A9EA6;--line:rgba(244,241,236,.12);
+--orange:#E4572E;--teal:#3A9A9B;--yellow:#FFD166;--display:'Libre Franklin',sans-serif;--body:'Inter',sans-serif;--mono:'IBM Plex Mono',monospace;}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--dark);color:var(--paper);font-family:var(--body);font-size:17.5px;line-height:1.68;-webkit-font-smoothing:antialiased}
+a{color:var(--paper)}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--yellow);outline-offset:3px}
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--orange);z-index:50}
+.topbar{position:sticky;top:0;z-index:40;background:rgba(16,20,24,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:12px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.topbar .mark{font-family:var(--display);font-weight:800;font-size:13px;letter-spacing:.02em;text-transform:uppercase;color:var(--orange);text-decoration:none;white-space:nowrap}
+.crumbs{font-family:var(--mono);font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crumbs a{color:var(--muted)}
+.crumbs ol{list-style:none;margin:0;padding:0;display:inline}
+.crumbs li{display:inline}
+.crumbs li+li::before{content:" / "}
+.rt{font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap}
+.toc-btn{display:none;background:none;border:1px solid var(--line);color:var(--paper);font-family:var(--mono);font-size:11px;padding:5px 9px;border-radius:3px;cursor:pointer}
+header.hero{max-width:900px;margin:0 auto;padding:64px 20px 28px}
+.eyebrow{font-family:var(--mono);font-size:11.5px;color:var(--orange);letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(2.3rem,6vw,3.9rem);line-height:1.03;letter-spacing:-.015em;margin:0 0 16px}
+h1 .accent{color:var(--orange)}
+.sub{font-size:1.15rem;color:var(--dim);max-width:640px;margin:0}
+.meta{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:18px;display:flex;gap:16px;flex-wrap:wrap}
+.spectrum{max-width:900px;margin:0 auto;padding:8px 20px 24px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.spec{padding:18px 20px;border-radius:4px;background:var(--panel)}
+.spec.before{border-left:3px solid var(--teal)}
+.spec.after{border-left:3px solid var(--orange)}
+.spec .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+.spec.before .lbl{color:var(--teal)}
+.spec.after .lbl{color:var(--orange)}
+.spec p{margin:0;font-size:15.5px;color:var(--dim);line-height:1.5}
+.spec strong{color:var(--paper)}
+.layout{max-width:1140px;margin:0 auto;padding:12px 20px 40px;display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:48px;align-items:start}
+article{min-width:0;max-width:72ch}
+article h2{font-family:var(--display);font-weight:800;font-size:1.55rem;line-height:1.2;letter-spacing:-.01em;margin:2.6rem 0 1rem;scroll-margin-top:72px}
+article h3{font-family:var(--display);font-weight:600;font-size:1.1rem;margin:1.6rem 0 .6rem}
+article p{margin:0 0 1.15rem}
+article ul,article ol{margin:0 0 1.2rem 1.2rem;padding:0}
+article li{margin-bottom:.45rem}
+article strong{font-weight:600}
+sup.cite a{font-family:var(--mono);font-size:.68em;color:var(--yellow);text-decoration:none;margin-left:1px}
+.marker{display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:2px;margin-bottom:10px}
+.marker.before{color:var(--teal);border:1px solid var(--teal)}
+.marker.after{color:var(--orange);border:1px solid var(--orange)}
+.beat{margin:2rem 0;padding:20px 22px;background:var(--panel);border:1px solid var(--line);border-radius:4px}
+.beat .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--yellow);margin-bottom:10px}
+.beat .shift{font-family:var(--display);font-weight:600;font-size:1.08rem;line-height:1.4;margin-bottom:12px}
+.beat .old{color:var(--teal)}
+.beat .new{color:var(--orange)}
+.beat .arrow{color:var(--muted);margin:0 .4rem}
+.beat p{margin:0;color:var(--dim);font-size:16px}
+.pq{margin:2rem 0;padding:22px 24px;border-left:4px solid var(--orange);background:rgba(228,87,46,.07);border-radius:0 4px 4px 0}
+.pq p{font-family:var(--display);font-weight:600;font-size:1.22rem;line-height:1.4;margin:0 0 12px}
+.share{display:flex;gap:10px;flex-wrap:wrap}
+.share a{font-family:var(--mono);font-size:11px;color:var(--muted);text-decoration:none;border:1px solid var(--line);padding:4px 10px;border-radius:2px}
+.share a:hover{color:var(--paper);border-color:var(--orange)}
+.math{font-family:var(--mono);font-size:15px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--yellow);padding:14px 16px;border-radius:3px;margin:1.2rem 0 1.4rem;overflow-x:auto}
+.aside{font-size:15px;color:var(--dim);background:var(--panel);border-left:2px solid var(--muted);padding:12px 16px;margin:1.4rem 0;border-radius:0 3px 3px 0}
+.tbl-wrap{overflow-x:auto;margin:1.2rem 0 1.6rem;border:1px solid var(--line);border-radius:4px}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.45}
+caption{caption-side:top;text-align:left;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:12px 14px 4px}
+th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+th{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+tr:last-child td{border-bottom:none}
+td.num{font-family:var(--mono);white-space:nowrap}
+.tag{font-family:var(--mono);font-size:10px;padding:1px 6px;border-radius:2px;white-space:nowrap}
+.tag.reported{color:var(--teal);border:1px solid var(--teal)}
+.tag.derived{color:var(--yellow);border:1px solid var(--yellow)}
+.tag.assumed{color:var(--muted);border:1px solid var(--muted)}
+.widget{margin:2.2rem 0;padding:22px;background:var(--panel);border:1px solid var(--line);border-radius:6px}
+.widget h3{margin:0 0 4px;font-size:1.15rem}
+.widget .hint{font-size:14.5px;color:var(--muted);margin:0 0 16px}
+.ctrl{margin-bottom:14px}
+.ctrl label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12px;color:var(--dim);margin-bottom:6px;gap:12px}
+.ctrl output{color:var(--yellow)}
+input[type=range]{width:100%;accent-color:var(--orange);height:28px}
+.readouts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:16px 0 6px}
+.ro{background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:10px 12px}
+.ro .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.ro .v{font-family:var(--display);font-weight:800;font-size:1.35rem;margin-top:2px}
+.ro.warn .v{color:var(--orange)}
+.ro.ok .v{color:var(--teal)}
+.chart{margin-top:12px}
+.chart svg{width:100%;height:auto;display:block}
+.chart .axis{stroke:rgba(244,241,236,.25);stroke-width:1}
+.chart .lbl{font-family:var(--mono);font-size:10px;fill:var(--muted)}
+.chart .curve{fill:none;stroke:var(--teal);stroke-width:2.5}
+.chart .thr{stroke:var(--orange);stroke-width:1.2;stroke-dasharray:4 4}
+.chart .dot{fill:var(--yellow)}
+.wnote{font-size:14.5px;color:var(--dim);margin:10px 0 0}
+.actions{counter-reset:act;list-style:none;margin:0 0 1.4rem!important;padding:0!important}
+.actions li{counter-increment:act;position:relative;padding:16px 18px 16px 58px;background:var(--panel);border:1px solid var(--line);border-radius:4px;margin-bottom:12px!important}
+.actions li::before{content:counter(act);position:absolute;left:18px;top:14px;font-family:var(--display);font-weight:800;font-size:1.4rem;color:var(--orange)}
+.actions li p{margin:.35rem 0 0;font-size:16px;color:var(--dim)}
+.actions .wk{font-family:var(--mono);font-size:12px;color:var(--yellow)}
+.closing{margin:2rem 0;padding:20px 22px;border:1px solid var(--orange);border-radius:4px;background:linear-gradient(135deg,rgba(228,87,46,.12),rgba(228,87,46,.02))}
+.closing .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--orange);margin-bottom:6px}
+.closing p{margin:0;font-weight:500}
+.recall{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:1rem 0 1.6rem}
+.rc{appearance:none;text-align:left;font:inherit;color:inherit;cursor:pointer;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:16px;min-height:118px}
+.rc:hover{border-color:var(--orange)}
+.rc .q{font-size:15px;line-height:1.45}
+.rc .a{display:none;font-family:var(--display);font-weight:800;font-size:1.15rem;color:var(--yellow);line-height:1.3}
+.rc .t{display:block;font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:10px;letter-spacing:.06em;text-transform:uppercase}
+.rc[aria-pressed=true]{background:var(--panel2);border-color:var(--yellow)}
+.rc[aria-pressed=true] .q{display:none}
+.rc[aria-pressed=true] .a{display:block}
+.cmap{margin:1rem 0 1.6rem;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px}
+.cmap svg{width:100%;height:auto;display:block}
+.cmap .node rect{fill:var(--panel2);stroke:var(--teal);stroke-width:1.5}
+.cmap .node.core rect{stroke:var(--orange);stroke-width:2}
+.cmap .node text{font-family:var(--body);font-size:12.5px;fill:var(--paper);font-weight:600}
+.cmap .edge{stroke:rgba(244,241,236,.35);stroke-width:1.3;fill:none}
+.cmap .elbl{font-family:var(--mono);font-size:10px;fill:var(--yellow)}
+.cmap-text{font-size:14px;color:var(--muted)}
+.cmap-text summary{cursor:pointer;font-family:var(--mono);font-size:12px}
+.related{display:grid;gap:10px;margin:1rem 0 1.6rem}
+.related a{display:block;text-decoration:none;padding:14px 16px;background:var(--panel);border:1px solid var(--line);border-radius:4px}
+.related a:hover{border-color:var(--orange)}
+.related .t{font-family:var(--display);font-weight:800}
+.related .w{display:block;font-size:14.5px;color:var(--muted);margin-top:2px}
+ol.cites{font-size:14.5px;color:var(--dim);margin-left:1.4rem!important}
+ol.cites li{scroll-margin-top:80px}
+ol.cites a{color:var(--paper);word-break:break-word}
+ol.cites li:target{background:rgba(255,209,102,.1)}
+aside.side{position:sticky;top:76px}
+.sbox{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:16px;margin-bottom:16px}
+.sbox h2{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--orange);margin:0 0 12px}
+.thing{display:flex;gap:10px;font-size:14px;line-height:1.4;color:var(--muted);margin-bottom:12px;transition:color .4s}
+.thing .dot{flex:0 0 9px;height:9px;border-radius:50%;background:var(--line);margin-top:5px;transition:background .4s}
+.thing.on{color:var(--paper)}
+.thing.on .dot{background:var(--orange)}
+.toc ol{list-style:none;margin:0;padding:0;font-size:14px}
+.toc li{margin-bottom:7px}
+.toc a{color:var(--muted);text-decoration:none}
+.toc a:hover,.toc a.cur{color:var(--paper)}
+footer.foot{border-top:1px solid var(--line);padding:32px 20px;text-align:center;font-family:var(--mono);font-size:12px}
+footer.foot a{color:var(--orange);margin:0 12px}
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
+.reveal.in{opacity:1;transform:none}
+@media (max-width:1023px){
+ .layout{grid-template-columns:minmax(0,1fr)}
+ aside.side{position:fixed;top:0;right:0;bottom:0;width:min(320px,86vw);background:var(--dark);border-left:1px solid var(--line);padding:70px 16px 16px;overflow-y:auto;transform:translateX(100%);transition:transform .25s ease;z-index:45}
+ aside.side.open{transform:none}
+ .toc-btn{display:inline-block}
+}
+@media (max-width:640px){
+ .spectrum{grid-template-columns:1fr}
+ .crumbs{display:none}
+ body{font-size:17px}
+}
+@media (prefers-reduced-motion:reduce){
+ *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+ .reveal{opacity:1;transform:none}
+}
+@media print{.topbar,#progress,aside.side,.share,.widget input{display:none}body{background:#fff;color:#000}}
+</style>
+</head>
+<body>
+<div id="progress" aria-hidden="true"></div>
+<header class="topbar">
+  <a class="mark" href="../index.html">Scaling AI Systems</a>
+  <nav class="crumbs" aria-label="Breadcrumb"><ol><li><a href="../index.html">Home</a></li><li>Case Studies</li><li aria-current="page">The Residency Tax</li></ol></nav>
+  <span class="rt">5 min read</span>
+  <button type="button" class="toc-btn" aria-expanded="false" aria-controls="sidebar">Contents</button>
+</header>
+
+<main>
+<header class="hero">
+  <div class="eyebrow">Compliance · Under Load</div>
+  <h1>The <span class="accent">Residency</span> Tax</h1>
+  <p class="sub">Legal signed off on keeping EU data in the EU. Nobody priced what that does to capacity, caching and failover.</p>
+  <div class="meta"><span>2026-10-07</span><span>5 min read</span><span>compliance-at-scale · data-residency · ai-infrastructure · capacity-planning</span></div>
+</header>
+
+<section class="spectrum" aria-label="Assumption versus evidence">
+  <div class="spec before"><div class="lbl">Common Assumption</div><p>Residency is a configuration flag: pick the EU region, sign the addendum, <strong>same system, different location</strong>.</p></div>
+  <div class="spec after"><div class="lbl">Actual Inflection</div><p>Each residency boundary is a separate capacity pool that must absorb its own peaks. Splitting one pool into four costs <strong>~26% more</strong> reserved capacity under the assumptions here, before cache and failover losses.</p></div>
+</section>
+
+<div class="layout">
+<article>
+  <span class="marker before">Before scale</span>
+  <p>In February 2025 OpenAI launched data residency in Europe for its API and enterprise products. For API customers, requests made through European projects are handled in-region with zero data retention.<sup class="cite"><a href="#cite-1" aria-label="Source 1">[1]</a></sup><sup class="cite"><a href="#cite-2" aria-label="Source 2">[2]</a></sup> It was a clear answer to a common procurement blocker for European customers.</p>
+<p>Read the implementation details and the architecture appears. European residency is set when a project is created; existing projects cannot be switched to it afterwards.<sup class="cite"><a href="#cite-1" aria-label="Source 1">[1]</a></sup><sup class="cite"><a href="#cite-2" aria-label="Source 2">[2]</a></sup> On AWS, Bedrock's geographic cross-region inference keeps processing inside a geography such as the US or EU, but prompts and outputs may move between regions inside it, and every destination region has to be allowed by IAM and service control policies.<sup class="cite"><a href="#cite-3" aria-label="Source 3">[3]</a></sup> On Azure, provisioned throughput comes in global, data-zone and regional deployment types, and a reservation must match both the deployment type and, for data-zone and regional deployments, the region.<sup class="cite"><a href="#cite-4" aria-label="Source 4">[4]</a></sup></p>
+<p>None of these are flags. Each is a boundary — a place where capacity, configuration and keys stop being shared.</p>
+
+  <div class="beat reveal"><div class="lbl">Perspective shift — beat 1</div><div class="shift"><span class="old">“Residency is where the data sits”</span><span class="arrow" aria-label="becomes">→</span><span class="new">“Residency is where the capacity can&#x27;t move”</span></div><p>Before residency, a global deployment is one pool: when Europe is busy and the US is quiet, capacity flows to where the demand is. A residency commitment cuts that link on purpose. EU traffic can only be served by EU capacity, so the EU pool must be sized for the EU peak alone. The same happens to everything that pools — rate limits, provisioned throughput reservations, prompt caches, fallback routes. Compliance gets a clean answer; capacity planning gets k separate problems.</p></div>
+
+  <h2 id="thesis">Partitions Lose the Pooling Discount</h2>
+  <p>Shared capacity is cheap because peaks don't line up. One pool serving four regions needs headroom for the variance of the total, and independent variances add, so the total's standard deviation grows only with the square root of the number of regions. Four separate pools each need their own headroom, so their combined headroom grows with the number of regions itself. This is the same square-root law that sets safety stock in warehouses and staffing in call centres.</p>
+<p>Write it down. With k regions, each with mean demand μ and standard deviation σ, and a service level z: a pooled deployment needs <code>kμ + zσ√k</code>; a partitioned one needs <code>kμ + zσk</code>. The gap is <code>zσ(k − √k)</code>, and it widens as you add regions and as demand gets spikier — exactly what agentic and batch workloads do to demand.</p>
+<p>Real regions are not fully independent, so the true penalty sits somewhere between zero and this bound. But time zones push the other way: regional peaks are offset by hours, and that is the diversity a global pool exploits and a partitioned one gives up.</p>
+  <blockquote class="pq reveal"><p>Compliance gets a clean answer; capacity planning gets k separate problems.</p><div class="share"><a href="https://x.com/intent/tweet?text=Compliance%20gets%20a%20clean%20answer%3B%20capacity%20planning%20gets%20k%20separate%20problems.&amp;url=https%3A%2F%2Figgym.github.io%2Fscaling-ai-systems%2Farticles%2Fthe-residency-tax.html" target="_blank" rel="noopener">Share on X</a><a href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Figgym.github.io%2Fscaling-ai-systems%2Farticles%2Fthe-residency-tax.html" target="_blank" rel="noopener">Share on LinkedIn</a></div></blockquote>
+
+  <h2 id="anatomy">What the Fourth Region Costs</h2>
+  <p>Use round numbers. Each region averages 100 capacity units — throughput units, GPUs or a slice of a rate limit — with a standard deviation of 30, and you size for a 99% service level (z ≈ 2.33). Assume regional demands are independent.</p>
+  <div class="tbl-wrap"><table><caption>Reserved capacity: one pool vs. residency partitions (illustrative)</caption><thead><tr><th scope="col">Regions (k)</th><th scope="col">Pooled capacity</th><th scope="col">Partitioned capacity</th><th scope="col">Extra for residency</th><th scope="col">Basis</th></tr></thead><tbody><tr><th scope="row">1</th><td>170</td><td>170</td><td>0%</td><td><span class="tag assumed">assumed</span> μ = 100, σ = 30, z = 2.33</td></tr><tr><th scope="row">2</th><td>299</td><td>340</td><td>+14%</td><td><span class="tag derived">derived</span> 200 + 69.9√2 vs. 200 + 69.9×2</td></tr><tr><th scope="row">3</th><td>421</td><td>510</td><td>+21%</td><td><span class="tag derived">derived</span></td></tr><tr><th scope="row">4</th><td>540</td><td>680</td><td>+26%</td><td><span class="tag derived">derived</span></td></tr><tr><th scope="row">6</th><td>771</td><td>1,019</td><td>+32%</td><td><span class="tag derived">derived</span></td></tr></tbody></table></div>
+  <div class="math">Extra capacity = zσ(k − √k) ÷ (kμ + zσ√k). At k = 4: 69.9 × 2 ÷ 539.8 = <strong>+26%</strong>. At $1M/year of reserved capacity, the fourth residency boundary costs roughly <strong>$260K/year</strong> before cache and failover effects.</div>
+
+  <section class="widget" id="widget" aria-labelledby="w-title">
+    <h3 id="w-title">How much does each new region cost you?</h3>
+    <p class="hint">Set the number of residency regions and how spiky regional demand is. The curve is extra reserved capacity versus one global pool.</p>
+    <div class="ctrl"><label for="in-k"><span>Residency regions</span><output id="out-k" for="in-k"></output></label><input type="range" id="in-k" min="1" max="8" step="1" value="4"></div><div class="ctrl"><label for="in-cv"><span>Demand variability (σ ÷ μ)</span><output id="out-cv" for="in-cv"></output></label><input type="range" id="in-cv" min="0.05" max="0.8" step="0.05" value="0.3"></div><div class="ctrl"><label for="in-z"><span>Service level z (2.33 = 99%)</span><output id="out-z" for="in-z"></output></label><input type="range" id="in-z" min="1" max="3" step="0.01" value="2.33"></div><div class="ctrl"><label for="in-b"><span>Annual capacity budget ($M)</span><output id="out-b" for="in-b"></output></label><input type="range" id="in-b" min="0.1" max="20" step="0.1" value="1"></div>
+    <div class="readouts" id="readouts" aria-live="polite"></div>
+    <div class="chart"><svg id="wchart" viewBox="0 0 640 240" role="img" aria-label="Extra reserved capacity as the number of residency regions grows"></svg></div>
+    <p class="wnote" id="wnote"></p>
+  </section>
+
+  <span class="marker after">After scale</span>
+  <div class="beat reveal"><div class="lbl">Perspective shift — beat 2</div><div class="shift"><span class="old">“We&#x27;ll fail over to another region”</span><span class="arrow" aria-label="becomes">→</span><span class="new">“Our failover target is now a compliance violation”</span></div><p>The second-order cost shows up in an incident. A global deployment survives a regional outage by sending traffic elsewhere. A residency-bound deployment cannot — or can only within the same geography, which is precisely the boundary that geographic inference profiles enforce.<sup class="cite"><a href="#cite-3" aria-label="Source 3">[3]</a></sup> So each partition needs its own failover inside its boundary, which means more headroom, more providers or a documented degraded mode. Teams that promised residency without pricing failover discover the trade-off during their first regional incident, when the only remaining capacity is in a region the contract forbids.</p></div>
+
+  <h2 id="pattern">Three Clouds, One Boundary Problem</h2>
+  <p>The major platforms expose residency differently, but each one turns the promise into a boundary that capacity, configuration or keys cannot cross.</p>
+<p>The details matter for planning. A project-level setting that cannot be changed after creation<sup class="cite"><a href="#cite-1" aria-label="Source 1">[1]</a></sup> means moving an existing workload into residency is a migration — new projects, new keys, new configuration, new usage limits — not a toggle. A reservation that must match a deployment type and region<sup class="cite"><a href="#cite-4" aria-label="Source 4">[4]</a></sup> means capacity bought for one boundary cannot be redeployed to another when demand shifts. And a geographic profile that routes within a geography<sup class="cite"><a href="#cite-3" aria-label="Source 3">[3]</a></sup> gives you some pooling back, but only inside the boundary, and only if your network and identity policies allow every region it may route to.</p>
+<p>Caching fragments along the same lines. A prefix cache is warm only where requests actually land, so a shared system prompt served from four residency boundaries warms four caches, each at a quarter of the traffic. For low-volume regions that can push the hit rate below break-even, which turns an expected discount into a surcharge.</p>
+  <div class="tbl-wrap"><table><caption>How residency becomes a boundary on each platform</caption><thead><tr><th scope="col">Platform</th><th scope="col">Residency mechanism</th><th scope="col">Boundary created</th><th scope="col">Planning consequence</th></tr></thead><tbody><tr><th scope="row">OpenAI API</th><td>European data-residency projects<sup class="cite"><a href="#cite-1" aria-label="Source 1">[1]</a></sup><sup class="cite"><a href="#cite-2" aria-label="Source 2">[2]</a></sup></td><td>Set at project creation; can't be changed later<sup class="cite"><a href="#cite-1" aria-label="Source 1">[1]</a></sup></td><td>Migration, not a toggle; separate project limits</td></tr><tr><th scope="row">Amazon Bedrock</th><td>Geographic cross-region inference profiles<sup class="cite"><a href="#cite-3" aria-label="Source 3">[3]</a></sup></td><td>Processing stays inside a geography; IAM/SCPs must allow every destination<sup class="cite"><a href="#cite-3" aria-label="Source 3">[3]</a></sup></td><td>Pooling only within the geography</td></tr><tr><th scope="row">Azure OpenAI</th><td>Global, data-zone and regional provisioned deployments<sup class="cite"><a href="#cite-4" aria-label="Source 4">[4]</a></sup></td><td>Reservations must match deployment type and region<sup class="cite"><a href="#cite-4" aria-label="Source 4">[4]</a></sup></td><td>Reserved capacity can't follow demand across zones</td></tr></tbody></table></div>
+  <blockquote class="pq reveal"><p>Each residency boundary is a capacity pool that must absorb its own peaks alone.</p><div class="share"><a href="https://x.com/intent/tweet?text=Each%20residency%20boundary%20is%20a%20capacity%20pool%20that%20must%20absorb%20its%20own%20peaks%20alone.&amp;url=https%3A%2F%2Figgym.github.io%2Fscaling-ai-systems%2Farticles%2Fthe-residency-tax.html" target="_blank" rel="noopener">Share on X</a><a href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Figgym.github.io%2Fscaling-ai-systems%2Farticles%2Fthe-residency-tax.html" target="_blank" rel="noopener">Share on LinkedIn</a></div></blockquote>
+
+  <h2 id="counter">Your Counterargument</h2>
+  <p>“This is over-engineering a legal requirement. Providers handle capacity, standard pay-as-you-go deployments scale automatically, and the square-root maths only matters if you reserve capacity. Pay per token and let the vendor worry about pooling.”</p>
+<p>For small and spiky workloads, that is the right call — pay-per-token shifts the pooling problem to the provider, which is a real benefit. It stops working at the scale this site is about. Large workloads buy reserved or provisioned capacity because shared tiers impose rate limits and variable latency, and the moment you reserve, the partition penalty is yours. Even on pay-per-token, per-project and per-region rate limits are still partitions: each boundary gets its own ceiling, and a burst in one region cannot borrow headroom from another.</p>
+<p>The fix is not to resist residency. It is to price it before you sign it — and to promise residency per data class and customer tier, not for the whole platform by default.</p>
+
+  <h2 id="actions">What to Do</h2>
+  <ol class="actions"><li><strong>Price every residency commitment before signing.</strong><p>For each proposed boundary, compute the extra reserved capacity with the formula above using your real demand variability, and attach the number to the contract review.</p><p class="wk">This week: calculate the penalty for your next pending residency request.</p></li><li><strong>Scope residency to data classes, not platforms.</strong><p>Many workloads can route de-identified or non-personal requests through a global pool and keep only regulated data in-region. Smaller partitions cost less.</p><p class="wk">This week: classify your top five AI workloads by the data they actually send.</p></li><li><strong>Design in-boundary failover now.</strong><p>For each residency region, decide in advance between a second in-geography region, a second provider in-region, or a documented degraded mode. Test it.</p><p class="wk">This week: write the failover target for each region on one page.</p></li><li><strong>Create residency projects before you need them.</strong><p>Where residency is fixed at project creation,<sup class="cite"><a href="#cite-1" aria-label="Source 1">[1]</a></sup> provision the in-region projects, keys and limits early, so a customer request does not become a rushed migration.</p><p class="wk">This week: list workloads that would need to move if a large EU customer asked tomorrow.</p></li></ol>
+
+  <div class="closing"><div class="lbl">In the next 24 hours</div><p>Count the residency boundaries you have already promised, and for each one, write down where its traffic goes during a regional outage. Any answer that crosses the boundary is a contract breach waiting for an incident.</p></div>
+
+  <h2 id="recall">Recall Check</h2>
+  <div class="recall"><button type="button" class="rc" aria-pressed="false"><span class="q">Can an existing OpenAI project be switched to European residency?</span><span class="a">No — set at project creation</span><span class="t">Tap to flip</span></button><button type="button" class="rc" aria-pressed="false"><span class="q">Partitioned capacity formula for k regions?</span><span class="a">kμ + zσk</span><span class="t">Tap to flip</span></button><button type="button" class="rc" aria-pressed="false"><span class="q">Extra capacity for 4 regions in the example?</span><span class="a">≈ +26%</span><span class="t">Tap to flip</span></button><button type="button" class="rc" aria-pressed="false"><span class="q">Azure provisioned reservations must match what?</span><span class="a">Deployment type and region</span><span class="t">Tap to flip</span></button></div>
+
+  <h2 id="map">Concept Map</h2>
+  <div class="cmap"><svg viewBox="0 0 720 380" role="img" aria-labelledby="cm-t cm-d"><title id="cm-t">Concept map</title><desc id="cm-d">Residency promise splits Capacity pools; Capacity pools multiplies Headroom; Residency promise fragments Prompt caches; Residency promise constrains Failover; Headroom raises Reserved cost; Failover adds Headroom</desc><defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="rgba(244,241,236,.5)"/></marker></defs><line class="edge" x1="360" y1="190" x2="360" y2="55" marker-end="url(#arr)"/><text class="elbl" x="360" y="118" text-anchor="middle">splits</text><line class="edge" x1="360" y1="55" x2="617" y2="148" marker-end="url(#arr)"/><text class="elbl" x="488" y="98" text-anchor="middle">multiplies</text><line class="edge" x1="360" y1="190" x2="519" y2="299" marker-end="url(#arr)"/><text class="elbl" x="439" y="241" text-anchor="middle">fragments</text><line class="edge" x1="360" y1="190" x2="201" y2="299" marker-end="url(#arr)"/><text class="elbl" x="281" y="241" text-anchor="middle">constrains</text><line class="edge" x1="617" y1="148" x2="103" y2="148" marker-end="url(#arr)"/><text class="elbl" x="360" y="144" text-anchor="middle">raises</text><line class="edge" x1="201" y1="299" x2="617" y2="148" marker-end="url(#arr)"/><text class="elbl" x="409" y="220" text-anchor="middle">adds</text><g class="node core"><rect x="282" y="172" width="156" height="36" rx="4"/><text x="360" y="194" text-anchor="middle">Residency promise</text></g><g class="node"><rect x="294" y="37" width="132" height="36" rx="4"/><text x="360" y="59" text-anchor="middle">Capacity pools</text></g><g class="node"><rect x="557" y="130" width="120" height="36" rx="4"/><text x="617" y="152" text-anchor="middle">Headroom</text></g><g class="node"><rect x="457" y="281" width="124" height="36" rx="4"/><text x="519" y="303" text-anchor="middle">Prompt caches</text></g><g class="node"><rect x="141" y="281" width="120" height="36" rx="4"/><text x="201" y="303" text-anchor="middle">Failover</text></g><g class="node"><rect x="41" y="130" width="124" height="36" rx="4"/><text x="103" y="152" text-anchor="middle">Reserved cost</text></g></svg></div><details class="cmap-text"><summary>Concept map as text</summary><ul><li>Residency promise → <em>splits</em> → Capacity pools</li><li>Capacity pools → <em>multiplies</em> → Headroom</li><li>Residency promise → <em>fragments</em> → Prompt caches</li><li>Residency promise → <em>constrains</em> → Failover</li><li>Headroom → <em>raises</em> → Reserved cost</li><li>Failover → <em>adds</em> → Headroom</li></ul></details>
+
+  <h2 id="related">Related</h2>
+  <div class="related"><a href="the-audit-bill-nobody-budgeted.html"><span class="t">The Audit Bill Nobody Budgeted</span><span class="w">The other compliance cost that compounds with volume.</span></a><a href="quota-is-an-org-chart.html"><span class="t">Quota Is an Org Chart</span><span class="w">Why each partition also gets its own rate-limit ceiling.</span></a><a href="the-hostage-architecture.html"><span class="t">The Hostage Architecture</span><span class="w">How platform-specific commitments harden into lock-in.</span></a></div>
+
+  <h2 id="sources">Sources</h2>
+  <ol class="cites"><li id="cite-1">OpenAI — <a href="https://openai.com/index/introducing-data-residency-in-europe/" target="_blank" rel="noopener">“Introducing data residency in Europe”</a> (Feb 2025)</li><li id="cite-2">TechCrunch — <a href="https://techcrunch.com/2025/02/06/openai-launches-data-residency-in-europe/" target="_blank" rel="noopener">“OpenAI launches data residency in Europe”</a> (Feb 2025)</li><li id="cite-3">AWS Documentation — <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/geographic-cross-region-inference.html" target="_blank" rel="noopener">“Geographic cross-Region inference — Amazon Bedrock”</a> (accessed Oct 2026)</li><li id="cite-4">Microsoft Learn — <a href="https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/provisioned-get-started" target="_blank" rel="noopener">“Get started with provisioned deployments (Azure OpenAI in Foundry)”</a> (accessed Oct 2026)</li></ol>
+  <p class="aside">Numbers tagged <span class="tag reported">reported</span> come from the cited source; <span class="tag derived">derived</span> are arithmetic on reported figures, with the formula shown; <span class="tag assumed">assumed</span> are round illustrative inputs you should replace with your own.</p>
+</article>
+
+<aside class="side" id="sidebar" aria-label="Article guide">
+  <div class="sbox"><h2>Three Things</h2><div class="thing" data-sec="thesis"><span class="dot"></span><span>Pools need zσ√k headroom; partitions need zσk.</span></div><div class="thing" data-sec="anatomy"><span class="dot"></span><span>Four boundaries ≈ +26% capacity under these assumptions.</span></div><div class="thing" data-sec="actions"><span class="dot"></span><span>Price residency, scope it by data class, plan in-boundary failover.</span></div></div>
+  <nav class="sbox toc" aria-label="On this page"><h2>On this page</h2><ol><li><a href="#thesis">Partitions Lose the Pooling Discount</a></li><li><a href="#anatomy">What the Fourth Region Costs</a></li><li><a href="#pattern">Three Clouds, One Boundary Problem</a></li><li><a href="#counter">Your Counterargument</a></li><li><a href="#actions">What to Do</a></li><li><a href="#recall">Recall Check</a></li><li><a href="#map">Concept Map</a></li><li><a href="#related">Related</a></li><li><a href="#sources">Sources</a></li></ol></nav>
+</aside>
+</div>
+</main>
+
+<footer class="foot"><a href="#">Back to top ↑</a><a href="../index.html">Home</a></footer>
+<script>
+window.WIDGET={
+ controls:[
+  {id:'k',value:4,fmt:function(x){return Math.round(x)+(x==1?' region':' regions');}},
+  {id:'cv',value:0.3,fmt:function(x){return x.toFixed(2);}},
+  {id:'z',value:2.33,fmt:function(x){return x.toFixed(2);}},
+  {id:'b',value:1,fmt:function(x){return '$'+x.toFixed(1)+'M';}}],
+ model:function(v){
+  var mu=100, s=v.cv*mu, k=v.k, pooled=k*mu+v.z*s*Math.sqrt(k), part=k*mu+v.z*s*k, extra=(part-pooled)/pooled;
+  return {y:extra*100,
+   readouts:[['Extra capacity',(extra*100).toFixed(0)+'%',extra>0.2?'warn':''],['Annual cost of partitioning','$'+Math.round(extra*v.b*1000)+'K',extra>0.2?'warn':''],['Headroom share of capacity',((part-k*mu)/part*100).toFixed(0)+'%']],
+   note: k<=1 ? 'One pool: no partition penalty.' : 'Upper bound assuming independent regional peaks. Correlated demand lowers it; time-zone offsets push it back up.'};},
+ chart:{x:'k',ymax:60,threshold:20,thrlabel:'20% budget line',xlabel:'number of residency regions',yfmt:function(y){return Math.round(y)+'%';},xfmt:function(x){return Math.round(x);}}
+};
+</script>
+<script>
+(function(){
+  var $=function(s,r){return (r||document).querySelector(s)}, $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+  var bar=$('#progress');
+  function onScroll(){var h=document.documentElement;var max=h.scrollHeight-h.clientHeight;if(bar)bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';}
+  window.addEventListener('scroll',onScroll,{passive:true});onScroll();
+  var btn=$('.toc-btn'), side=$('aside.side');
+  if(btn&&side){btn.addEventListener('click',function(){var o=side.classList.toggle('open');btn.setAttribute('aria-expanded',o?'true':'false');});
+    $$('a',side).forEach(function(a){a.addEventListener('click',function(){side.classList.remove('open');btn.setAttribute('aria-expanded','false');});});}
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(es){es.forEach(function(en){if(en.isIntersecting){en.target.classList.add('in');io.unobserve(en.target);}});},{rootMargin:'0px 0px -10% 0px'});
+    $$('.reveal').forEach(function(el){io.observe(el);});
+    var so=new IntersectionObserver(function(es){es.forEach(function(en){if(!en.isIntersecting)return;var id=en.target.id;
+      $$('.thing[data-sec="'+id+'"]').forEach(function(t){t.classList.add('on');});
+      $$('.toc a').forEach(function(a){a.classList.toggle('cur',a.getAttribute('href')==='#'+id);});});},{rootMargin:'0px 0px -55% 0px'});
+    $$('article h2[id]').forEach(function(h){so.observe(h);});
+  } else { $$('.reveal').forEach(function(el){el.classList.add('in');}); $$('.thing').forEach(function(t){t.classList.add('on');}); }
+  $$('.rc').forEach(function(c){c.addEventListener('click',function(){c.setAttribute('aria-pressed',c.getAttribute('aria-pressed')==='true'?'false':'true');});});
+  var W=window.WIDGET; if(!W) return;
+  var root=$('#widget'); if(!root) return;
+  var inputs={}; W.controls.forEach(function(c){inputs[c.id]=$('#in-'+c.id);});
+  function vals(over){var v={};W.controls.forEach(function(c){var el=inputs[c.id];v[c.id]=el?parseFloat(el.value):c.value;});if(over)for(var k in over)v[k]=over[k];return v;}
+  function draw(v){
+    var svg=$('#wchart'); if(!svg) return;
+    var C=W.chart, xc=W.controls.filter(function(c){return c.id===C.x;})[0];
+    var Wd=640,Ht=240,L=56,R=16,T=16,B=36, N=80, pts=[], ymax=C.ymax||0;
+    for(var i=0;i<=N;i++){var x=xc.min+(xc.max-xc.min)*i/N;var o={};o[C.x]=x;var y=W.model(vals(o)).y;pts.push([x,y]);if(!C.ymax&&isFinite(y))ymax=Math.max(ymax,y);}
+    if(C.threshold!=null&&!C.ymax)ymax=Math.max(ymax,C.threshold*1.15);
+    ymax=ymax||1;
+    var sx=function(x){return L+(x-xc.min)/(xc.max-xc.min)*(Wd-L-R);}, sy=function(y){return T+(1-Math.min(Math.max(y,0),ymax)/ymax)*(Ht-T-B);};
+    var d=pts.map(function(p,i){return (i?'L':'M')+sx(p[0]).toFixed(1)+','+sy(p[1]).toFixed(1);}).join(' ');
+    var cur=W.model(v).y, s='';
+    s+='<line class="axis" x1="'+L+'" y1="'+(Ht-B)+'" x2="'+(Wd-R)+'" y2="'+(Ht-B)+'"/><line class="axis" x1="'+L+'" y1="'+T+'" x2="'+L+'" y2="'+(Ht-B)+'"/>';
+    for(var t=0;t<=4;t++){var yv=ymax*t/4;s+='<text class="lbl" x="'+(L-6)+'" y="'+(sy(yv)+3)+'" text-anchor="end">'+C.yfmt(yv)+'</text>';}
+    for(var t2=0;t2<=4;t2++){var xv=xc.min+(xc.max-xc.min)*t2/4;s+='<text class="lbl" x="'+sx(xv)+'" y="'+(Ht-B+16)+'" text-anchor="middle">'+C.xfmt(xv)+'</text>';}
+    s+='<text class="lbl" x="'+((L+Wd-R)/2)+'" y="'+(Ht-2)+'" text-anchor="middle">'+C.xlabel+'</text>';
+    if(C.threshold!=null){s+='<line class="thr" x1="'+L+'" x2="'+(Wd-R)+'" y1="'+sy(C.threshold)+'" y2="'+sy(C.threshold)+'"/><text class="lbl" x="'+(Wd-R)+'" y="'+(sy(C.threshold)-5)+'" text-anchor="end" style="fill:var(--orange)">'+C.thrlabel+'</text>';}
+    s+='<path class="curve" d="'+d+'"/><circle class="dot" r="5" cx="'+sx(v[C.x])+'" cy="'+sy(cur)+'"/>';
+    svg.innerHTML=s;
+  }
+  function update(){
+    var v=vals(), out=W.model(v);
+    W.controls.forEach(function(c){var o=$('#out-'+c.id), el=inputs[c.id]; var txt=c.fmt(v[c.id]); if(o)o.textContent=txt; if(el)el.setAttribute('aria-valuetext',txt);});
+    var ro=$('#readouts'); if(ro) ro.innerHTML=out.readouts.map(function(r){return '<div class="ro '+(r[2]||'')+'"><div class="k">'+r[0]+'</div><div class="v">'+r[1]+'</div></div>';}).join('');
+    var n=$('#wnote'); if(n) n.textContent=out.note||'';
+    draw(v);
+  }
+  W.controls.forEach(function(c){if(inputs[c.id])inputs[c.id].addEventListener('input',update);});
+  update();
+})();
+</script>
+</body>
+</html>

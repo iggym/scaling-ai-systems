@@ -99,6 +99,8 @@
   const descEl = document.getElementById('site-desc');
   const footerDescEl = document.getElementById('footer-desc');
 
+  function esc(v){ return String(v==null?'':v).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
   function fmtDate(iso){ try{ return new Date(iso+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }catch(e){return iso;} }
 
   function sparkline(){
@@ -110,13 +112,13 @@
   }
 
   function cardHTML(a,isPinned){
-    const tags = (a.tags||[]).map(t=>`<span class="tag-pill">${t}</span>`).join('');
+    const tags = (a.tags||[]).map(t=>`<span class="tag-pill">${esc(t)}</span>`).join('');
     return `
-      <a class="card ${isPinned?'pinned':''}" href="${a.path}">
-        <div class="card-meta"><span>${fmtDate(a.date)}</span><span>${a.reading_time_minutes||'—'} min</span>${isPinned?'<span>flagship</span>':''}</div>
-        <h2>${a.title}</h2>
+      <a class="card ${isPinned?'pinned':''}" href="${esc(a.path)}">
+        <div class="card-meta"><span>${esc(fmtDate(a.date))}</span><span>${esc(a.reading_time_minutes||'—')} min</span>${isPinned?'<span>flagship</span>':''}</div>
+        <h2>${esc(a.title)}</h2>
         <div class="sparkline">${sparkline()}</div>
-        <p class="hook">${a.hook||''}</p>
+        <p class="hook">${esc(a.hook)}</p>
         <div class="tags">${tags}</div>
       </a>`;
   }
